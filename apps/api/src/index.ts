@@ -26,10 +26,14 @@ app.use(
     })
 );
 
+import { jobsRouter } from './routes/jobs';
+
 // Better Auth routes (signup, login, etc)
 app.on(['POST', 'GET'], '/api/auth/**', (c) => {
     return auth.handler(c.req.raw);
 });
+
+app.route('/api/jobs', jobsRouter);
 
 app.get('/', (c) => c.json({ status: 'ok' }));
 
