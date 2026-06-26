@@ -104,3 +104,37 @@ interviewsRouter.post('/:token/chunk', async (c) => {
     
     return c.json({ received: true, chunkIndex, assembled });
 });
+
+// POST /api/interviews/:token/submit — Complete interview
+interviewsRouter.post('/:token/submit', async (c) => {
+    const token = c.req.param('token');
+    
+    // Fetch interview
+    const [interview] = await db.select().from(interviews).where(eq(interviews.token, token));
+    if (!interview) return c.json({ error: 'invalid_token' }, 404);
+    
+    await db.update(interviews)
+        .set({ 
+            status: 'completed',
+            submittedAt: sql`now()`
+        })
+        .where(eq(interviews.id, interview.id));
+        
+    return c.json({ submitted: true });
+});
+
+// GET /api/interviews/:token/status — Get per-question upload status
+interviewsRouter.get('/:token/status', async (c) => {
+    const token = c.req.param('token');
+    
+    const [interview] = await db.select().from(interviews).where(eq(interviews.token, token));
+    if (!interview) return c.json({ error: 'invalid_token' }, 404);
+    
+    const allAnswers = await db.select({
+        questionIndex: answers.questionIndex,
+        videoChunksReceived: answers.videoChunksReceived,
+        videoAssembled: answers.videoAssembled
+    }).from(answers).where(eq(answers.interviewId, interview.id));
+    
+    return c.json({ answers: allAnswers });
+});
