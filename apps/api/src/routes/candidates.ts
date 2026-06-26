@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '../db/client';
-import { candidates, candidateScores } from '../db/schema';
+import { candidates, candidateScores, scorecards, answers } from '../db/schema';
 import { requireAuth } from '../middleware/requireAuth';
 import { eq, sql } from 'drizzle-orm';
 
@@ -97,7 +97,34 @@ candidatesRouter.post('/:id/invite', async (c) => {
         })
         .where(eq(interviews.token, token));
         
-    return c.json({ sent: true, token });
+    return c.json({ invited: true, token });
+});
+
+// GET /api/candidates/:id/scorecard
+candidatesRouter.get('/:id/scorecard', async (c) => {
+    const candidateId = c.req.param('id');
+    const [candidate] = await db.select().from(candidates).where(eq(candidates.id, candidateId));
+    if (!candidate) return c.json({ error: 'not_found' }, 404);
+    
+    const [interview] = await db.select().from(interviews).where(eq(interviews.candidateId, candidateId));
+    if (!interview) return c.json({ status: 'not_started' });
+    
+    if (interview.status !== 'completed') {
+        return c.json({ status: 'in_progress' });
+    }
+    
+    const [scorecard] = await db.select().from(scorecards).where(eq(scorecards.interviewId, interview.id));
+    if (!scorecard) {
+        return c.json({ status: 'processing' });
+    }
+    
+    const allAnswers = await db.select().from(answers).where(eq(answers.interviewId, interview.id));
+    
+    return c.json({
+        status: 'completed',
+        scorecard,
+        answers: allAnswers
+    });
 });
 
 // GET /api/candidates/:id — Return full candidate details including scores
