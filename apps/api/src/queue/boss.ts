@@ -19,15 +19,48 @@ export async function initQueue() {
         if (!jobRecord) return;
 
         try {
-            const res = await fetch('http://localhost:8001/analyze', {
+            const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+            const res = await fetch(`${workerUrl}/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ job_id, jd_text: jobRecord.jdText })
             });
 
             if (!res.ok) throw new Error('JD Analysis Worker returned error');
+
+            const data = await res.json() as { data: { required_skills: string[]; seniority_level: string; domain: string } };
+            // Enqueue scraping after analysis succeeds
+            await enqueue('scrape-candidates', {
+                job_id,
+                query: `${data.data?.seniority_level ?? ''} ${data.data?.domain ?? jobRecord.title}`.trim(),
+            });
         } catch (err) {
             console.error('Failed to analyze job', err);
+            await db.update(jobs).set({ status: 'error' }).where(eq(jobs.id, job_id));
+        }
+    });
+
+    await startWorker('scrape-candidates', async (job) => {
+        const { job_id, query } = job.data as { job_id: string; query: string };
+        const { db } = await import('../db/client');
+        const { jobs } = await import('../db/schema');
+        const { eq } = await import('drizzle-orm');
+
+        try {
+            const workerUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8002';
+            const res = await fetch(`${workerUrl}/scrape`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_id, query, max_results: 50 })
+            });
+
+            if (!res.ok) throw new Error('Scraper Worker returned error');
+            await db.update(jobs).set({ status: 'scoring_pending' }).where(eq(jobs.id, job_id));
+
+            // Enqueue scoring after scraping
+            await enqueue('score-candidates', { job_id });
+        } catch (err) {
+            console.error('Failed to scrape candidates', err);
             await db.update(jobs).set({ status: 'error' }).where(eq(jobs.id, job_id));
         }
     });
