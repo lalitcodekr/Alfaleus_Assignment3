@@ -11,7 +11,7 @@ interface Candidate {
   currentTitle?: string;
   totalScore?: number;
   shortlisted?: boolean;
-  interviewStatus?: 'not_invited' | 'invited' | 'link_opened' | 'completed';
+  interviewStatus?: 'not_invited' | 'invited' | 'in_progress' | 'completed' | 'expired';
 }
 
 export default function JobPipelinePage() {

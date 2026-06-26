@@ -7,6 +7,14 @@ import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown';
 import { InterviewScorecard } from '@/components/ui/InterviewScorecard';
 import { useComparisonStore } from '@/store/comparisonStore';
 
+interface CandidateDetail {
+  id: string;
+  name: string;
+  title?: string;
+  experienceSummary?: string;
+  shortlisted?: boolean;
+}
+
 interface CandidateScores {
   technicalScore?: number;
   seniorityScore?: number;
@@ -20,9 +28,9 @@ interface CandidateScores {
 interface ScorecardData {
   status: string;
   scorecard?: {
-    aggregateScore?: number;
-    hireSignal?: string;
-    confidence?: number;
+    aggregateScore: number;
+    hireSignal: 'Strong Hire' | 'Hire' | 'No Hire';
+    confidence: number;
     rankingJustification?: string;
     followUpQuestions?: string[];
   };
@@ -76,8 +84,8 @@ export default function CandidateDetailPage() {
             ← Back
           </button>
           <h1 style={{ fontSize: 22, fontWeight: 700 }}>{candidate?.name || 'Candidate'}</h1>
-          {candidate?.currentTitle && (
-            <span style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>{candidate.currentTitle}</span>
+          {candidate?.title && (
+            <span style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>{candidate.title}</span>
           )}
         </div>
 
@@ -87,7 +95,7 @@ export default function CandidateDetailPage() {
           <div>
             <div className="surface" style={{ padding: '24px', marginBottom: 20 }}>
               <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
-                {candidate?.summary || 'No summary available.'}
+                {candidate?.experienceSummary || 'No summary available.'}
               </p>
             </div>
 
