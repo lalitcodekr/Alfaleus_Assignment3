@@ -64,6 +64,42 @@ export async function initQueue() {
             await db.update(jobs).set({ status: 'error' }).where(eq(jobs.id, job_id));
         }
     });
+
+    await startWorker('score-candidates', async (job) => {
+        const { job_id } = job.data as { job_id: string };
+        const { db } = await import('../db/client');
+        const { jobs, candidates } = await import('../db/schema');
+        const { eq } = await import('drizzle-orm');
+
+        try {
+            // Get all candidates for the job
+            const allCandidates = await db.select().from(candidates).where(eq(candidates.jobId, job_id));
+            
+            const workerUrl = process.env.SCORER_WORKER_URL || 'http://localhost:8003';
+            
+            // Process in batches of 10 to not overwhelm the scorer worker
+            const batchSize = 10;
+            for (let i = 0; i < allCandidates.length; i += batchSize) {
+                const batch = allCandidates.slice(i, i + batchSize);
+                await Promise.all(batch.map(async (candidate) => {
+                    const res = await fetch(`${workerUrl}/score`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ job_id, candidate_id: candidate.id })
+                    });
+                    if (!res.ok) {
+                        console.error(`Failed to score candidate ${candidate.id}:`, await res.text());
+                    }
+                }));
+            }
+
+            await db.update(jobs).set({ status: 'completed' }).where(eq(jobs.id, job_id));
+            console.log(`Finished scoring ${allCandidates.length} candidates for job ${job_id}`);
+        } catch (err) {
+            console.error('Failed to score candidates', err);
+            await db.update(jobs).set({ status: 'error' }).where(eq(jobs.id, job_id));
+        }
+    });
 }
 
 export async function enqueue<T = any>(jobName: string, payload: T, options?: PgBoss.SendOptions) {
