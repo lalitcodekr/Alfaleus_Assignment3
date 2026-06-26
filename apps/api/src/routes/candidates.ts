@@ -30,6 +30,32 @@ candidatesRouter.post('/:id/invite', async (c) => {
     // Generate token and create interview record
     const { token } = await tokenService.createInterviewRecord(candidate.id, job.id);
     
+    // Generate questions using JD analysis worker
+    const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+    let generatedQuestions = null;
+    try {
+        const res = await fetch(`${workerUrl}/generate-questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                parsed_jd: job.parsedJd,
+                candidate_profile: {
+                    title: candidate.title,
+                    skills: candidate.skills,
+                    experience: candidate.experienceSummary
+                }
+            })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            generatedQuestions = data.data.questions;
+        } else {
+            console.error('Failed to generate questions:', await res.text());
+        }
+    } catch (err) {
+        console.error('Error calling question generator:', err);
+    }
+    
     // Render email HTML
     const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
     const interviewLink = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/interview/${token}`;
@@ -63,9 +89,12 @@ candidatesRouter.post('/:id/invite', async (c) => {
         console.log(`[Mock Email] To: ${candidate.name}, Link: ${interviewLink}`);
     }
     
-    // Update interview status to invited
+    // Update interview status to invited and store questions
     await db.update(interviews)
-        .set({ status: 'invited' })
+        .set({ 
+            status: 'invited',
+            questions: generatedQuestions 
+        })
         .where(eq(interviews.token, token));
         
     return c.json({ sent: true, token });
