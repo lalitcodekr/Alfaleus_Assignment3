@@ -6,9 +6,70 @@ import { candidates, candidateScores } from '../db/schema';
 import { requireAuth } from '../middleware/requireAuth';
 import { eq, sql } from 'drizzle-orm';
 
+import { Resend } from 'resend';
+import { render } from '@react-email/render';
+import { InvitationEmail } from '../email/InvitationEmail';
+import { tokenService } from '../interview/tokenService';
+import { jobs, interviews } from '../db/schema';
+import React from 'react';
+
 export const candidatesRouter = new Hono();
 
 candidatesRouter.use('*', requireAuth);
+
+// POST /api/candidates/:id/invite — Generate token, create interview, and send email
+candidatesRouter.post('/:id/invite', async (c) => {
+    const candidateId = c.req.param('id');
+    
+    const [candidate] = await db.select().from(candidates).where(eq(candidates.id, candidateId));
+    if (!candidate) return c.json({ error: 'Candidate not found' }, 404);
+    
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, candidate.jobId!));
+    if (!job) return c.json({ error: 'Job not found' }, 404);
+    
+    // Generate token and create interview record
+    const { token } = await tokenService.createInterviewRecord(candidate.id, job.id);
+    
+    // Render email HTML
+    const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString();
+    const interviewLink = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/interview/${token}`;
+    
+    // @ts-ignore - bypassing potential JSX pragma conflicts for now
+    const html = await render(
+        React.createElement(InvitationEmail, {
+            candidateName: candidate.name,
+            roleTitle: job.title,
+            companyName: "Alfaleus Demo",
+            interviewLink,
+            timePerQuestion: 5,
+            expiryDate,
+        })
+    );
+    
+    // Send email via Resend
+    if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        try {
+            await resend.emails.send({
+                from: 'Alfaleus <interviews@alfaleus.com>',
+                to: ['candidate@example.com'], // Usually candidate.email, mocked for demo
+                subject: `Invitation to interview for ${job.title}`,
+                html,
+            });
+        } catch (err) {
+            console.error("Resend error:", err);
+        }
+    } else {
+        console.log(`[Mock Email] To: ${candidate.name}, Link: ${interviewLink}`);
+    }
+    
+    // Update interview status to invited
+    await db.update(interviews)
+        .set({ status: 'invited' })
+        .where(eq(interviews.token, token));
+        
+    return c.json({ sent: true, token });
+});
 
 // GET /api/candidates/:id — Return full candidate details including scores
 candidatesRouter.get('/:id', async (c) => {

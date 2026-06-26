@@ -13,6 +13,8 @@
   "dependencies": {
     "@hono/node-server": "^2.0.6",
     "@hono/zod-validator": "^0.8.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.9",
     "better-auth": "^1.6.22",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -21,6 +23,9 @@
     "pg": "^8.22.0",
     "pg-boss": "^10.4.2",
     "pino": "^10.3.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "resend": "^6.16.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
