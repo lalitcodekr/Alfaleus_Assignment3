@@ -100,6 +100,28 @@ export async function initQueue() {
             await db.update(jobs).set({ status: 'error' }).where(eq(jobs.id, job_id));
         }
     });
+
+    await startWorker('transcribe-answer', async (job) => {
+        const payload = job.data as { answer_id: string, r2_key: string, question_index: number, interview_id: string };
+        const workerUrl = process.env.TRANSCRIBER_WORKER_URL || 'http://localhost:8004';
+        
+        try {
+            const res = await fetch(`${workerUrl}/transcribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Transcriber worker failed: ${errText}`);
+            }
+            console.log(`Successfully transcribed answer ${payload.answer_id}`);
+        } catch (err) {
+            console.error('Failed to transcribe answer', err);
+            throw err; // pg-boss will retry
+        }
+    });
 }
 
 export async function enqueue<T = any>(jobName: string, payload: T, options?: PgBoss.SendOptions) {
