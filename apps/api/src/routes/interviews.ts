@@ -34,9 +34,8 @@ interviewsRouter.get('/:token', async (c) => {
             .where(eq(interviews.id, interview.id));
     }
     
-    // Fetch related candidate and job for UI display
     const [candidate] = await db.select().from(candidates).where(eq(candidates.id, interview.candidateId));
-    const [job] = await db.select().from(jobs).where(eq(jobs.id, interview.jobId));
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, candidate?.jobId || ''));
     
     return c.json({
         questions: interview.questions,

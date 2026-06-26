@@ -17,6 +17,10 @@ load_dotenv("../../.env")
 
 app = FastAPI()
 
+@app.get("/health")
+async def health():
+    return {"status": "ok", "model": "faster-whisper/base/int8"}
+
 class TranscribeRequest(BaseModel):
     answer_id: str
     r2_key: str

@@ -5,6 +5,7 @@ import { db } from '../db/client';
 import { candidates, candidateScores, scorecards, answers } from '../db/schema';
 import { requireAuth } from '../middleware/requireAuth';
 import { eq, sql } from 'drizzle-orm';
+import { auth } from '../auth/auth';
 
 import { Resend } from 'resend';
 import { render } from '@react-email/render';
@@ -13,7 +14,14 @@ import { tokenService } from '../interview/tokenService';
 import { jobs, interviews } from '../db/schema';
 import React from 'react';
 
-export const candidatesRouter = new Hono();
+type Env = {
+    Variables: {
+        user: typeof auth.$Infer.Session.user;
+        session: typeof auth.$Infer.Session.session;
+    }
+}
+
+export const candidatesRouter = new Hono<Env>();
 
 candidatesRouter.use('*', requireAuth);
 

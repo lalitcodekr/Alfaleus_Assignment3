@@ -1,0 +1,71 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# TalentIQ — Railway Deployment Configuration
+# Deploys all 5 services from their respective Dockerfiles.
+# Run: railway up
+# ────────────────────────────────────────────────────────────────────────────────
+
+[build]
+builder = "dockerfile"
+
+# ── API (Hono + Node.js) ────────────────────────────────────────────────────────
+[[services]]
+name = "api"
+source = "apps/api"
+dockerfile = "apps/api/Dockerfile"
+
+[services.variables]
+NODE_ENV = "production"
+# Set these in the Railway dashboard or via `railway variables set`:
+# DATABASE_URL, ANTHROPIC_API_KEY, RESEND_API_KEY,
+# R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET_NAME,
+# NEXT_PUBLIC_API_URL, JWT_SECRET, BETTER_AUTH_SECRET,
+# SCRAPER_WORKER_URL, JD_ANALYSIS_WORKER_URL, SCORER_WORKER_URL, TRANSCRIBER_WORKER_URL
+
+[services.deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# ── Scraper Worker (Python / Playwright) ────────────────────────────────────────
+[[services]]
+name = "scraper-worker"
+source = "workers/scraper"
+dockerfile = "workers/scraper/Dockerfile"
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# ── JD Analysis Worker (Python / Claude) ────────────────────────────────────────
+[[services]]
+name = "jd-analysis-worker"
+source = "workers/jd-analysis"
+dockerfile = "workers/jd-analysis/Dockerfile"
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# ── Scorer Worker (Python / sentence-transformers + Claude) ─────────────────────
+[[services]]
+name = "scorer-worker"
+source = "workers/scorer"
+dockerfile = "workers/scorer/Dockerfile"
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# ── Transcriber Worker (Python / Whisper + ffmpeg) ──────────────────────────────
+[[services]]
+name = "transcriber-worker"
+source = "workers/transcriber"
+dockerfile = "workers/transcriber/Dockerfile"
+
+[services.variables]
+# Whisper base model pre-downloaded at build time — no extra env needed
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

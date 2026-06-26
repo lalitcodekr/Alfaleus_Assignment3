@@ -16,7 +16,6 @@ export const tokenService = {
         await db.insert(interviews).values({
             id,
             candidateId,
-            jobId,
             token,
             status: 'not_invited',
             expiresAt: sql`now() + interval '7 days'`,

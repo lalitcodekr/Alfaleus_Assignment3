@@ -125,11 +125,18 @@ export async function initQueue() {
 }
 
 export async function enqueue<T = any>(jobName: string, payload: T, options?: PgBoss.SendOptions) {
-    return await boss.send(jobName, payload as object, options);
+    if (options) {
+        return await boss.send(jobName, payload as object, options);
+    }
+    return await boss.send(jobName, payload as object);
 }
 
 export async function startWorker<T = any>(jobName: string, handler: (job: PgBoss.Job<T>) => Promise<void>, options?: PgBoss.WorkOptions) {
-    await boss.work(jobName, options || {}, handler);
+    if (options && Object.keys(options).length > 0) {
+        await (boss.work as any)(jobName, options, handler);
+    } else {
+        await (boss.work as any)(jobName, handler);
+    }
 }
 
 export { boss };

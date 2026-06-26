@@ -36,8 +36,8 @@ comparisonRouter.post('/', requireAuth, async (c) => {
         return {
             id: candidate.id,
             name: candidate.name,
-            title: candidate.currentTitle || 'Unknown',
-            total_score: score?.totalScore || 0,
+            title: candidate.title || 'Unknown',
+            total_score: score?.compositeScore || 0,
             scores: {
                 technical: score?.technicalScore || 0,
                 seniority: score?.seniorityScore || 0,
