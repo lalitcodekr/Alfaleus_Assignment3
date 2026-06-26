@@ -1,0 +1,9 @@
+{
+  "name": "talentiq",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "mobile",
+    "workers/*"
+  ]
+}

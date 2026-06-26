@@ -1,0 +1,23 @@
+name: Python Workers CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test Workers
+        # TODO: Install dependencies, run mypy & pytest
+        run: echo "Python checks stubbed"
+      - name: Deploy to Railway
+        # TODO: Add railway up with RAILWAY_TOKEN in Phase 25
+        run: echo "Railway deploy stubbed"
