@@ -26,8 +26,8 @@ export function NewJobModal({ onClose, onSuccess }: NewJobModalProps) {
     try {
       await api.post('/api/jobs', { title, jd_text: jdText, shortlist_threshold: threshold });
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create job.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create job.');
     } finally {
       setLoading(false);
     }

@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       await api.post('/api/auth/sign-in/email', { email, password });
       router.push('/');
-    } catch (err: any) {
+    } catch {
       setError('Invalid email or password. Please try again.');
     } finally {
       setLoading(false);

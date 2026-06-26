@@ -7,19 +7,31 @@ import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown';
 import { InterviewScorecard } from '@/components/ui/InterviewScorecard';
 import { useComparisonStore } from '@/store/comparisonStore';
 
-interface CandidateDetail {
-  id: string;
-  name: string;
-  currentTitle?: string;
-  summary?: string;
+interface CandidateScores {
+  technicalScore?: number;
+  seniorityScore?: number;
+  domainScore?: number;
+  implicitScore?: number;
+  compositeScore?: number;
+  redFlags?: string[];
   shortlisted?: boolean;
-  scores?: {
-    technicalScore: number;
-    seniorityScore: number;
-    domainScore: number;
-    implicitScore: number;
-    totalScore: number;
+}
+
+interface ScorecardData {
+  status: string;
+  scorecard?: {
+    aggregateScore?: number;
+    hireSignal?: string;
+    confidence?: number;
+    rankingJustification?: string;
+    followUpQuestions?: string[];
   };
+  answers?: {
+    questionIndex: number;
+    transcription?: string;
+    relevanceScore?: number;
+    clarityScore?: number;
+  }[];
 }
 
 export default function CandidateDetailPage() {
@@ -29,14 +41,14 @@ export default function CandidateDetailPage() {
   const { add } = useComparisonStore();
   const queryClient = useQueryClient();
 
-  const { data: candidateData } = useQuery<{ candidate: CandidateDetail; scores: any }>({
+  const { data: candidateData } = useQuery<{ candidate: CandidateDetail; scores: CandidateScores }>({
     queryKey: ['candidate', candidateId],
     queryFn: () => api.get(`/api/candidates/${candidateId}`),
   });
 
-  const { data: scorecardData, isLoading: scorecardLoading } = useQuery({
+  const { data: scorecardData, isLoading: scorecardLoading } = useQuery<ScorecardData>({
     queryKey: ['scorecard', candidateId],
-    queryFn: () => api.get<any>(`/api/candidates/${candidateId}/scorecard`),
+    queryFn: () => api.get(`/api/candidates/${candidateId}/scorecard`),
     refetchInterval: (query) => {
       return query.state.data?.status === 'processing' ? 10_000 : false;
     },

@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { PipelineRow } from '@/components/ui/PipelineRow';
-import { useComparisonStore } from '@/store/comparisonStore';
 
 interface Candidate {
   id: string;
@@ -12,14 +11,13 @@ interface Candidate {
   currentTitle?: string;
   totalScore?: number;
   shortlisted?: boolean;
-  interviewStatus?: string;
+  interviewStatus?: 'not_invited' | 'invited' | 'link_opened' | 'completed';
 }
 
 export default function JobPipelinePage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.id as string;
-  const { add } = useComparisonStore();
   const queryClient = useQueryClient();
 
   const { data: candidates, isLoading } = useQuery<Candidate[]>({
@@ -74,7 +72,7 @@ export default function JobPipelinePage() {
                 title={c.currentTitle}
                 score={c.totalScore || 0}
                 shortlisted={c.shortlisted}
-                interviewStatus={(c.interviewStatus as any) || 'not_invited'}
+                interviewStatus={c.interviewStatus || 'not_invited'}
                 onInvite={() => inviteMutation.mutate(c.id)}
                 onView={() => router.push(`/candidates/${c.id}`)}
               />

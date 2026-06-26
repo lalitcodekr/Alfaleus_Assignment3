@@ -13,11 +13,6 @@ interface Job {
   status: string;
 }
 
-interface JobStats {
-  total_candidates: number;
-  shortlisted: number;
-  interviews_started: number;
-}
 
 export default function DashboardPage() {
   const [modalOpen, setModalOpen] = useState(false);

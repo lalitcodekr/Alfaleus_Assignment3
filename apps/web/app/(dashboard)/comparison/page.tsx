@@ -6,13 +6,26 @@ import { api } from '@/lib/api';
 import { ComparisonGrid } from '@/components/ui/ComparisonGrid';
 import { useComparisonStore } from '@/store/comparisonStore';
 
+interface ComparisonResponse {
+  candidates: {
+    id: string;
+    name: string;
+    title: string;
+    total_score: number;
+    scores: { technical: number; seniority: number; domain: number; implicit: number };
+    interview_status: string;
+    scorecard: { aggregate_score: number; hire_signal: string; confidence: number; ranking_justification: string } | null;
+  }[];
+  ranking_narrative: string;
+}
+
 export default function ComparisonPage() {
   const router = useRouter();
   const { selectedIds, remove, clear } = useComparisonStore();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<ComparisonResponse>({
     queryKey: ['comparison', selectedIds],
-    queryFn: () => api.post<any>('/api/comparison', { candidate_ids: selectedIds }),
+    queryFn: () => api.post<ComparisonResponse>('/api/comparison', { candidate_ids: selectedIds }),
     enabled: selectedIds.length >= 2,
   });
 
