@@ -49,3 +49,37 @@ jobsRouter.get('/', async (c) => {
 
     return c.json({ jobs: allJobs });
 });
+
+jobsRouter.get('/:id/candidates', async (c) => {
+    const jobId = c.req.param('id');
+    const { score_min, score_max, shortlisted, interview_status, has_red_flag } = c.req.query();
+    
+    // Using dynamic query building with Drizzle
+    const { and, eq, gte, lte, desc, isNotNull, sql } = await import('drizzle-orm');
+    const { candidateScores } = await import('../db/schema');
+    
+    const filters = [eq(candidates.jobId, jobId)];
+    
+    if (score_min) filters.push(gte(candidateScores.compositeScore, parseFloat(score_min)));
+    if (score_max) filters.push(lte(candidateScores.compositeScore, parseFloat(score_max)));
+    if (shortlisted !== undefined) filters.push(eq(candidateScores.shortlisted, shortlisted === 'true'));
+    // Note: If red_flags is stored as JSONB array, we can check if it's not empty
+    if (has_red_flag === 'true') filters.push(sql`jsonb_array_length(${candidateScores.redFlags}) > 0`);
+    
+    const results = await db.select({
+        id: candidates.id,
+        name: candidates.name,
+        title: candidates.title,
+        company: candidates.company,
+        dataConfidence: candidates.dataConfidence,
+        compositeScore: candidateScores.compositeScore,
+        shortlisted: candidateScores.shortlisted,
+        redFlags: candidateScores.redFlags,
+    })
+    .from(candidates)
+    .leftJoin(candidateScores, eq(candidates.id, candidateScores.candidateId))
+    .where(and(...filters))
+    .orderBy(desc(candidateScores.compositeScore));
+    
+    return c.json({ candidates: results });
+});
