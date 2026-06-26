@@ -1,0 +1,77 @@
+# ============================================================
+# TalentIQ — .gitignore
+# Covers: Node.js / Next.js / Expo / Python / Railway / macOS
+# ============================================================
+
+# ---- Secrets (NEVER commit these) ----
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+*.pem
+
+# ---- Node / npm ----
+node_modules/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Next.js ----
+apps/web/.next/
+apps/web/out/
+apps/web/.vercel/
+
+# ---- TypeScript ----
+dist/
+build/
+*.tsbuildinfo
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Expo / React Native ----
+mobile/.expo/
+mobile/dist/
+mobile/android/
+mobile/ios/
+*.jks
+*.keystore
+*.mobileprovision
+*.p8
+*.p12
+*.cer
+
+# ---- Drizzle ----
+drizzle/
+*.sql.snap
+
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# ---- Editors ----
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- Railway / Docker ----
+.railway/
