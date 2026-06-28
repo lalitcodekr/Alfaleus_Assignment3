@@ -11,6 +11,9 @@ interface Job {
   title: string;
   createdAt: string;
   status: string;
+  candidateCount?: number;
+  avgScore?: number;
+  interviewedCount?: number;
 }
 
 

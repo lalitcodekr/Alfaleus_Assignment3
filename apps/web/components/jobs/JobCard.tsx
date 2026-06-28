@@ -8,6 +8,9 @@ interface JobCardProps {
     title: string;
     createdAt: string;
     status?: string;
+    candidateCount?: number;
+    avgScore?: number;
+    interviewedCount?: number;
   };
 }
 
@@ -40,9 +43,9 @@ export function JobCard({ job }: JobCardProps) {
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
           {[
-            { label: 'Candidates', value: '—' },
-            { label: 'Avg Score', value: '—' },
-            { label: 'Interviewed', value: '—' },
+            { label: 'Candidates', value: job.candidateCount ?? 0 },
+            { label: 'Avg Score', value: job.avgScore ? Math.round(job.avgScore) : '—' },
+            { label: 'Interviewed', value: job.interviewedCount ?? 0 },
           ].map((stat) => (
             <div key={stat.label} style={{ flex: 1, textAlign: 'center' }}>
               <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>

@@ -109,8 +109,12 @@ jobsRouter.get('/', async (c) => {
         status: jobs.status,
         createdAt: jobs.createdAt,
         candidateCount: sql<number>`count(distinct ${candidates.id})::int`,
+        avgScore: sql<number>`avg(candidate_scores.composite_score)::real`,
+        interviewedCount: sql<number>`count(distinct case when interviews.status != 'not_invited' then interviews.id end)::int`,
     }).from(jobs)
       .leftJoin(candidates, sql`${jobs.id} = ${candidates.jobId}`)
+      .leftJoin(sql`candidate_scores`, sql`${candidates.id} = candidate_scores.candidate_id`)
+      .leftJoin(sql`interviews`, sql`${candidates.id} = interviews.candidate_id`)
       .groupBy(jobs.id)
       .orderBy(desc(jobs.createdAt));
 
