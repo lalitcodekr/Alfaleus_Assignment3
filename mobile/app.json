@@ -43,8 +43,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "1829f584-9fed-47d6-8a4c-370cf6716443"
       }
-    }
+    },
+    "owner": "plalitkr"
   }
 }

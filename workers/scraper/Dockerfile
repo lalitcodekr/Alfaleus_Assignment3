@@ -49,5 +49,5 @@ RUN pip install --no-cache-dir fastapi uvicorn playwright httpx beautifulsoup4 \
     tenacity fake-useragent asyncpg pydantic python-dotenv
 RUN playwright install-deps chromium
 
-EXPOSE 8002
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+EXPOSE 8001
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}"]

@@ -1,0 +1,68 @@
+services:
+  # ── Scraper Worker ─────────────────────────────────────────────────────────
+  # Deploy from: workers/scraper/
+  - type: web
+    name: talentiq-scraper-worker
+    runtime: docker
+    dockerfilePath: workers/scraper/Dockerfile
+    dockerContext: workers/scraper
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false        # Set in Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PORT
+        value: "10000"     # Render assigns its own port via $PORT
+
+  # ── JD Analysis Worker ─────────────────────────────────────────────────────
+  # Deploy from: workers/jd-analysis/
+  - type: web
+    name: talentiq-jd-analysis-worker
+    runtime: docker
+    dockerfilePath: workers/jd-analysis/Dockerfile
+    dockerContext: workers/jd-analysis
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  # ── Scorer Worker ──────────────────────────────────────────────────────────
+  # Deploy from: workers/scorer/
+  - type: web
+    name: talentiq-scorer-worker
+    runtime: docker
+    dockerfilePath: workers/scorer/Dockerfile
+    dockerContext: workers/scorer
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  # ── Transcriber Worker ─────────────────────────────────────────────────────
+  # Deploy from: workers/transcriber/
+  - type: web
+    name: talentiq-transcriber-worker
+    runtime: docker
+    dockerfilePath: workers/transcriber/Dockerfile
+    dockerContext: workers/transcriber
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
