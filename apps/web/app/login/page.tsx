@@ -27,7 +27,7 @@ export default function LoginPage() {
         await api.post('/api/auth/sign-up/email', { email, password, name });
         // Switch to sign in tab and show toast
         setIsSignUp(false);
-        setToast('Account created successfully! Please sign in.');
+        setToast({ message: 'Account created successfully! Please sign in.', type: 'success' });
       } else {
         await api.post('/api/auth/sign-in/email', { email, password });
         router.push('/');
