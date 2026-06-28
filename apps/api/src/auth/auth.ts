@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/client";
 
 export const auth = betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL || "https://talentiq-api-dhw7.onrender.com/api/auth",
     trustedOrigins: ["http://localhost:3000", process.env.FRONTEND_URL || ""],
     database: drizzleAdapter(db, {
         provider: "pg",
