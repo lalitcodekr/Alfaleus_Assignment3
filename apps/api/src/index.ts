@@ -11,20 +11,28 @@ const app = new Hono();
 
 app.use(logger());
 
-// Start pg-boss queue (using async IIFE to avoid top-level await issues in CJS if any)
-initQueue().catch(err => {
-    console.error('Failed to start pg-boss:', err);
-});
-
 app.use(
     '/api/*',
     cors({
-        origin: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+        origin: (origin) => {
+            const allowed = [
+                'http://localhost:3000',
+                process.env.FRONTEND_URL || '',
+                'https://talentiq-web.onrender.com',
+            ].filter(Boolean);
+            if (!origin || allowed.includes(origin)) return origin || '*';
+            return null;
+        },
         allowHeaders: ['Content-Type', 'Authorization'],
-        allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'],
+        allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
         credentials: true,
     })
 );
+
+// Start pg-boss queue in background (server starts immediately; queue becomes ready within seconds)
+initQueue().catch(err => {
+    console.error('[startup] Failed to start pg-boss queue:', err);
+});
 
 import { jobsRouter } from './routes/jobs';
 import { candidatesRouter } from './routes/candidates';

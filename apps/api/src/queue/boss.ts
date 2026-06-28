@@ -5,9 +5,18 @@ const boss = new PgBoss(process.env.DATABASE_URL!);
 
 boss.on('error', (error) => console.error('pg-boss error:', error));
 
+// Track whether boss has finished starting to prevent enqueue() from being called too early
+let bossStartPromise: Promise<void> | null = null;
+
+export async function waitForBoss(): Promise<void> {
+    if (bossStartPromise) await bossStartPromise;
+}
+
 export async function initQueue() {
-    await boss.start();
-    console.log('pg-boss queue started');
+    bossStartPromise = boss.start().then(() => {
+        console.log('pg-boss queue started');
+    });
+    await bossStartPromise;
 
     await startWorker('jd-analysis', async (job) => {
         const { job_id } = job.data as { job_id: string };
@@ -125,10 +134,20 @@ export async function initQueue() {
 }
 
 export async function enqueue<T = any>(jobName: string, payload: T, options?: PgBoss.SendOptions) {
+    // Wait for boss to be ready before trying to send
+    await waitForBoss();
+    let result;
     if (options) {
-        return await boss.send(jobName, payload as object, options);
+        result = await boss.send(jobName, payload as object, options);
+    } else {
+        result = await boss.send(jobName, payload as object);
     }
-    return await boss.send(jobName, payload as object);
+    if (result === null) {
+        console.error(`[pg-boss] enqueue('${jobName}') returned null — job may not have been queued!`);
+    } else {
+        console.log(`[pg-boss] enqueued '${jobName}' with id: ${result}`);
+    }
+    return result;
 }
 
 export async function startWorker<T = any>(jobName: string, handler: (job: PgBoss.Job<T>) => Promise<void>, options?: PgBoss.WorkOptions) {

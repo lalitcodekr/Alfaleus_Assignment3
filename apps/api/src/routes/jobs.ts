@@ -30,9 +30,76 @@ jobsRouter.post('/', zValidator('json', createJobSchema), async (c) => {
         status: 'parsing',
     });
 
-    await enqueue('jd-analysis', { job_id: jobId });
+    // Try pg-boss queue first; fall back to direct HTTP call if queue isn't ready
+    const queued = await enqueue('jd-analysis', { job_id: jobId });
+    if (!queued) {
+        // pg-boss returned null — trigger the worker directly as a fire-and-forget
+        console.warn('[jobs] pg-boss not ready, triggering JD analysis worker directly');
+        const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+        fetch(`${workerUrl}/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_id: jobId, jd_text }),
+        }).then(async (res) => {
+            if (!res.ok) {
+                console.error('[jobs] Direct JD worker call failed:', await res.text());
+                return;
+            }
+            const data = await res.json() as { data: { seniority_level?: string; domain?: string } };
+            await enqueue('scrape-candidates', {
+                job_id: jobId,
+                query: `${data.data?.seniority_level ?? ''} ${data.data?.domain ?? title}`.trim(),
+            });
+        }).catch(err => console.error('[jobs] Direct JD worker error:', err));
+    }
 
     return c.json({ job_id: jobId }, 202);
+});
+
+// Admin endpoint to manually re-trigger the full pipeline for a stuck job
+jobsRouter.post('/:id/retrigger', async (c) => {
+    const jobId = c.req.param('id');
+    const { eq } = await import('drizzle-orm');
+
+    const [jobRecord] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+    if (!jobRecord) return c.json({ error: 'Job not found' }, 404);
+
+    console.log(`[admin] Re-triggering pipeline for job: ${jobId}`);
+
+    const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+    try {
+        const res = await fetch(`${workerUrl}/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_id: jobId, jd_text: jobRecord.jdText }),
+        });
+        if (!res.ok) {
+            const errText = await res.text();
+            return c.json({ error: `JD worker failed: ${errText}` }, 500);
+        }
+        const data = await res.json() as { data: { seniority_level?: string; domain?: string } };
+        await db.update(jobs).set({ status: 'parsing' }).where(eq(jobs.id, jobId));
+
+        // Now trigger scraper
+        const scraperUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8002';
+        const scrapeRes = await fetch(`${scraperUrl}/scrape`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                job_id: jobId,
+                query: `${data.data?.seniority_level ?? ''} ${data.data?.domain ?? jobRecord.title}`.trim(),
+                max_results: 30,
+            }),
+        });
+        if (!scrapeRes.ok) {
+            return c.json({ error: `Scraper failed: ${await scrapeRes.text()}`, jd_analysis: data.data }, 500);
+        }
+        const scrapeData = await scrapeRes.json();
+
+        return c.json({ success: true, jd_analysis: data.data, scrape: scrapeData });
+    } catch (err: any) {
+        return c.json({ error: err.message }, 500);
+    }
 });
 
 jobsRouter.get('/', async (c) => {
