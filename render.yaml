@@ -30,13 +30,13 @@ services:
       - key: NODE_ENV
         value: production
       - key: SCRAPER_WORKER_URL
-        sync: false
+        value: https://talentiq-scraper-worker.onrender.com
       - key: JD_ANALYSIS_WORKER_URL
-        sync: false
+        value: https://talentiq-jd-analysis-worker.onrender.com
       - key: SCORER_WORKER_URL
-        sync: false
+        value: https://talentiq-scorer-worker.onrender.com
       - key: TRANSCRIBER_WORKER_URL
-        sync: false
+        value: https://talentiq-transcriber-worker.onrender.com
 
   # ── Scraper Worker (Python / Playwright) ───────────────────────────────────
   - type: web

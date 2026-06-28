@@ -8,7 +8,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://talentiq-api.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://talentiq-api-dhw7.onrender.com"
       }
     },
     "production": {
@@ -16,7 +16,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://talentiq-api.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://talentiq-api-dhw7.onrender.com"
       }
     }
   },
