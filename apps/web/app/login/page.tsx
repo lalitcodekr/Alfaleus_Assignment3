@@ -33,7 +33,10 @@ export default function LoginPage() {
         router.push('/');
       }
     } catch {
-      setError(isSignUp ? 'Sign up failed. User may already exist.' : 'Invalid email or password.');
+      setToast({ 
+        message: isSignUp ? 'Sign up failed. User may already exist.' : 'Invalid email or password.', 
+        type: 'error' 
+      });
     } finally {
       setLoading(false);
     }
