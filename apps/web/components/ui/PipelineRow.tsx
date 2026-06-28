@@ -57,14 +57,16 @@ export function PipelineRow({
 }: PipelineRowProps) {
   return (
     <div
+      className="card-hover"
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 16,
-        padding: '14px 20px',
+        padding: '16px 24px',
         background: shortlisted ? 'var(--color-accent-bg)' : 'transparent',
         borderBottom: '1px solid var(--color-border)',
-        transition: 'background 0.15s ease',
+        transition: 'all 0.2s ease',
+        cursor: 'default',
       }}
     >
       {/* Rank */}

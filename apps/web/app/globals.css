@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Roboto+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,48 +7,48 @@
 /* === Midnight Ember Design Tokens === */
 :root {
   /* Colors */
-  --color-bg-base: #0D0D0F;
-  --color-bg-surface: #161619;
-  --color-bg-elevated: #1E1E22;
+  --color-bg-base: #050505;
+  --color-bg-surface: rgba(20, 20, 22, 0.6);
+  --color-bg-elevated: rgba(30, 30, 34, 0.75);
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.16);
 
-  /* Primary - Orange */
-  --color-primary: #FF7A00;
-  --color-primary-light: #FF9A40;
-  --color-primary-dark: #CC6200;
-  --color-primary-glow: rgba(255, 122, 0, 0.25);
+  /* Primary - Vibrant Orange */
+  --color-primary: #FF5A00;
+  --color-primary-light: #FF8A33;
+  --color-primary-dark: #CC4800;
+  --color-primary-glow: rgba(255, 90, 0, 0.4);
 
   /* Accent */
-  --color-accent-bg: rgba(255, 122, 0, 0.08);
+  --color-accent-bg: rgba(255, 90, 0, 0.1);
 
   /* Semantic */
-  --color-success: #22C55E;
+  --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
   --color-info: #3B82F6;
-  --color-danger-bg: rgba(239, 68, 68, 0.08);
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
 
   /* Text */
-  --color-text-primary: #F5F5F7;
-  --color-text-secondary: #A0A0A8;
-  --color-text-tertiary: #6B6B74;
-  --color-text-inverse: #0D0D0F;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A1A1AA;
+  --color-text-tertiary: #71717A;
+  --color-text-inverse: #000000;
 
   /* Score ranges */
-  --score-high: #FF7A00;
+  --score-high: #FF5A00;
   --score-medium: #F59E0B;
-  --score-low: #6B6B74;
+  --score-low: #71717A;
 
   /* Typography */
-  --font-body: 'Roboto', -apple-system, sans-serif;
-  --font-mono: 'Roboto Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   /* Spacing */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
   --radius-full: 9999px;
 }
 
@@ -66,6 +66,10 @@ html {
 
 body {
   background-color: var(--color-bg-base);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(255, 90, 0, 0.06), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(255, 90, 0, 0.04), transparent 25%);
+  background-attachment: fixed;
   color: var(--color-text-primary);
   min-height: 100vh;
 }
@@ -98,16 +102,30 @@ body {
 }
 
 /* === Utility Classes === */
+.glass {
+  background: var(--color-bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
 .surface {
   background: var(--color-bg-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .surface-elevated {
   background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .glow-sm {

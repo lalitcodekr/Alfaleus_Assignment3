@@ -8,9 +8,9 @@ import { PipelineRow } from '@/components/ui/PipelineRow';
 interface Candidate {
   id: string;
   name: string;
-  title?: string;          // API returns 'title', not 'currentTitle'
+  title?: string;
   company?: string;
-  compositeScore?: number; // API returns 'compositeScore', not 'totalScore'
+  compositeScore?: number;
   shortlisted?: boolean;
   dataConfidence?: string;
   redFlags?: string[];
@@ -40,35 +40,36 @@ export default function JobPipelinePage() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ color: 'var(--color-text-tertiary)' }}>Loading pipeline…</span>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="pulse-dot" style={{ width: 16, height: 16, background: 'var(--color-primary)', borderRadius: '50%' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg-base)', padding: '32px 24px' }}>
+    <div style={{ minHeight: '100vh', padding: '48px 24px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 40 }}>
           <button
             id="pipeline-back-btn"
             onClick={() => router.push('/')}
             className="btn btn-ghost"
-            style={{ padding: '8px 12px', fontSize: 13 }}
+            style={{ padding: '10px 16px', fontSize: 14, borderRadius: 'var(--radius-full)', background: 'var(--color-bg-surface)' }}
           >
             ← Back
           </button>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Candidate Pipeline</h1>
-          <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-text-tertiary)' }}>
-            {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} · {candidates.filter(c => c.shortlisted).length} shortlisted
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>Candidate Pipeline</h1>
+          <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--color-text-secondary)', background: 'var(--color-bg-surface)', padding: '8px 16px', borderRadius: 'var(--radius-full)', border: '1px solid var(--color-border)' }}>
+            {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} <span style={{ opacity: 0.5, margin: '0 8px' }}>|</span> {candidates.filter(c => c.shortlisted).length} shortlisted
           </span>
         </div>
 
         {/* Pipeline list */}
-        <div className="surface" style={{ overflow: 'hidden' }}>
+        <div className="glass" style={{ overflow: 'hidden', borderRadius: 'var(--radius-lg)' }}>
           {candidates.length === 0 ? (
-            <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+            <div style={{ padding: '80px 24px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+              <div className="pulse-dot" style={{ width: 12, height: 12, background: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px' }} />
               No candidates yet. Scraping in progress…
             </div>
           ) : (
@@ -77,8 +78,8 @@ export default function JobPipelinePage() {
                 key={c.id}
                 rank={i + 1}
                 name={c.name}
-                title={c.title}               // fixed: was c.currentTitle
-                score={c.compositeScore || 0}  // fixed: was c.totalScore
+                title={c.title}
+                score={c.compositeScore || 0}
                 shortlisted={c.shortlisted}
                 interviewStatus={c.interviewStatus || 'not_invited'}
                 onInvite={() => inviteMutation.mutate(c.id)}

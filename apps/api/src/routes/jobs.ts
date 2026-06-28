@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '../db/client';
-import { jobs, candidates } from '../db/schema';
+import { jobs, candidates, candidateScores, interviews, answers, scorecards } from '../db/schema';
 import { enqueue } from '../queue/boss';
 import { requireAuth } from '../middleware/requireAuth';
-import { desc, sql } from 'drizzle-orm';
+import { desc, sql, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 export const jobsRouter = new Hono();
@@ -153,4 +153,31 @@ jobsRouter.get('/:id/candidates', async (c) => {
     .orderBy(desc(candidateScores.compositeScore));
     
     return c.json({ candidates: results });
+});
+
+jobsRouter.delete('/:id', async (c) => {
+    const jobId = c.req.param('id');
+    try {
+        await db.transaction(async (tx) => {
+            const jobCandidates = await tx.select({ id: candidates.id }).from(candidates).where(eq(candidates.jobId, jobId));
+            const candidateIds = jobCandidates.map(c => c.id);
+
+            if (candidateIds.length > 0) {
+                const candidateInterviews = await tx.select({ id: interviews.id }).from(interviews).where(inArray(interviews.candidateId, candidateIds));
+                const interviewIds = candidateInterviews.map(i => i.id);
+
+                if (interviewIds.length > 0) {
+                    await tx.delete(answers).where(inArray(answers.interviewId, interviewIds));
+                    await tx.delete(scorecards).where(inArray(scorecards.interviewId, interviewIds));
+                }
+                await tx.delete(interviews).where(inArray(interviews.candidateId, candidateIds));
+                await tx.delete(candidateScores).where(inArray(candidateScores.candidateId, candidateIds));
+                await tx.delete(candidates).where(eq(candidates.jobId, jobId));
+            }
+            await tx.delete(jobs).where(eq(jobs.id, jobId));
+        });
+        return c.json({ success: true });
+    } catch (err: any) {
+        return c.json({ error: err.message }, 500);
+    }
 });
