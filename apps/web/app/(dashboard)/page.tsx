@@ -32,7 +32,7 @@ export default function DashboardPage() {
       try {
         await api.delete(`/api/jobs/${id}`);
         refetch();
-      } catch (err) {
+      } catch {
         alert('Failed to delete job.');
       }
     }

@@ -34,7 +34,7 @@ export default function ComparisonPage() {
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
         <div style={{ fontSize: 48 }}>⚖️</div>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 18, fontWeight: 500 }}>Select at least 2 candidates to compare.</p>
-        <p style={{ color: 'var(--color-text-tertiary)', fontSize: 14 }}>Go to a candidate profile and click "Add to Comparison".</p>
+        <p style={{ color: 'var(--color-text-tertiary)', fontSize: 14 }}>Go to a candidate profile and click &quot;Add to Comparison&quot;.</p>
         <button id="comparison-back-btn" className="btn btn-ghost" style={{ borderRadius: 'var(--radius-full)', marginTop: 8 }} onClick={() => router.push('/')}>
           ← Back to Dashboard
         </button>
