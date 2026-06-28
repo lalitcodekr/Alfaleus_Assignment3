@@ -17,10 +17,12 @@ interface Job {
 export default function DashboardPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: jobs, isLoading, refetch } = useQuery<Job[]>({
+  const { data, isLoading, refetch } = useQuery<{ jobs: Job[] }>({
     queryKey: ['jobs'],
-    queryFn: () => api.get<Job[]>('/api/jobs'),
+    queryFn: () => api.get<{ jobs: Job[] }>('/api/jobs'),
   });
+
+  const jobs = data?.jobs || [];
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg-base)', padding: '32px 24px' }}>

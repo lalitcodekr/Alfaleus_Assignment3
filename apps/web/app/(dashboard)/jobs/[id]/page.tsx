@@ -8,9 +8,12 @@ import { PipelineRow } from '@/components/ui/PipelineRow';
 interface Candidate {
   id: string;
   name: string;
-  currentTitle?: string;
-  totalScore?: number;
+  title?: string;          // API returns 'title', not 'currentTitle'
+  company?: string;
+  compositeScore?: number; // API returns 'compositeScore', not 'totalScore'
   shortlisted?: boolean;
+  dataConfidence?: string;
+  redFlags?: string[];
   interviewStatus?: 'not_invited' | 'invited' | 'in_progress' | 'completed' | 'expired';
 }
 
@@ -20,10 +23,12 @@ export default function JobPipelinePage() {
   const jobId = params.id as string;
   const queryClient = useQueryClient();
 
-  const { data: candidates, isLoading } = useQuery<Candidate[]>({
+  const { data, isLoading } = useQuery<{ candidates: Candidate[] }>({
     queryKey: ['candidates', jobId],
-    queryFn: () => api.get<Candidate[]>(`/api/jobs/${jobId}/candidates`),
+    queryFn: () => api.get<{ candidates: Candidate[] }>(`/api/jobs/${jobId}/candidates`),
   });
+
+  const candidates = data?.candidates || [];
 
   const inviteMutation = useMutation({
     mutationFn: (candidateId: string) =>
@@ -55,22 +60,25 @@ export default function JobPipelinePage() {
             ← Back
           </button>
           <h1 style={{ fontSize: 22, fontWeight: 700 }}>Candidate Pipeline</h1>
+          <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-text-tertiary)' }}>
+            {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} · {candidates.filter(c => c.shortlisted).length} shortlisted
+          </span>
         </div>
 
         {/* Pipeline list */}
         <div className="surface" style={{ overflow: 'hidden' }}>
-          {(candidates || []).length === 0 ? (
+          {candidates.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
               No candidates yet. Scraping in progress…
             </div>
           ) : (
-            (candidates || []).map((c, i) => (
+            candidates.map((c, i) => (
               <PipelineRow
                 key={c.id}
                 rank={i + 1}
                 name={c.name}
-                title={c.currentTitle}
-                score={c.totalScore || 0}
+                title={c.title}               // fixed: was c.currentTitle
+                score={c.compositeScore || 0}  // fixed: was c.totalScore
                 shortlisted={c.shortlisted}
                 interviewStatus={c.interviewStatus || 'not_invited'}
                 onInvite={() => inviteMutation.mutate(c.id)}

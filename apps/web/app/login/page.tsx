@@ -15,22 +15,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setToast(null);
     
     try {
       if (isSignUp) {
         await api.post('/api/auth/sign-up/email', { email, password, name });
+        // Switch to sign in tab and show toast
+        setIsSignUp(false);
+        setToast('Account created successfully! Please sign in.');
       } else {
         await api.post('/api/auth/sign-in/email', { email, password });
+        router.push('/');
       }
-      router.push('/');
     } catch {
-      setError(isSignUp ? 'Sign up failed. Please try again.' : 'Invalid email or password.');
+      setError(isSignUp ? 'Sign up failed. User may already exist.' : 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -46,7 +49,7 @@ export default function LoginPage() {
         window.location.href = res.url;
       }
     } catch {
-      setError(`Failed to connect with ${provider}. Check your API keys.`);
+      setToast({ message: `Failed to connect with ${provider}. Check your API keys.`, type: 'error' });
     }
   }
 
@@ -76,40 +79,54 @@ export default function LoginPage() {
         <div className="surface-elevated" style={{ padding: '32px', borderRadius: 'var(--radius-xl)' }}>
           
           {/* Tabs */}
-          <div style={{ display: 'flex', marginBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(false); setError(''); }}
-              style={{
-                flex: 1,
-                padding: '12px 0',
-                background: 'none',
-                border: 'none',
-                borderBottom: !isSignUp ? '2px solid var(--color-primary)' : '2px solid transparent',
-                color: !isSignUp ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                fontWeight: !isSignUp ? 600 : 400,
-                cursor: 'pointer',
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(true); setError(''); }}
-              style={{
-                flex: 1,
-                padding: '12px 0',
-                background: 'none',
-                border: 'none',
-                borderBottom: isSignUp ? '2px solid var(--color-primary)' : '2px solid transparent',
-                color: isSignUp ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                fontWeight: isSignUp ? 600 : 400,
-                cursor: 'pointer',
-              }}
-            >
-              Sign Up
-            </button>
-          </div>
+        <div style={{ display: 'flex', marginBottom: 32, borderBottom: '1px solid var(--border)' }}>
+          <button
+            type="button"
+            onClick={() => { setIsSignUp(false); setToast(null); }}
+            style={{
+              flex: 1,
+              padding: '12px 0',
+              background: 'none',
+              border: 'none',
+              borderBottom: !isSignUp ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: !isSignUp ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+              fontWeight: !isSignUp ? 600 : 400,
+              cursor: 'pointer',
+            }}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsSignUp(true); setToast(null); }}
+            style={{
+              flex: 1,
+              padding: '12px 0',
+              background: 'none',
+              border: 'none',
+              borderBottom: isSignUp ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: isSignUp ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+              fontWeight: isSignUp ? 600 : 400,
+              cursor: 'pointer',
+            }}
+          >
+            Sign Up
+          </button>
+        </div>
+
+          {toast && (
+            <div style={{ 
+              padding: '12px', 
+              marginBottom: 16, 
+              background: toast.type === 'success' ? 'rgba(52, 168, 83, 0.1)' : 'rgba(234, 67, 53, 0.1)', 
+              borderLeft: `4px solid ${toast.type === 'success' ? '#34A853' : '#EA4335'}`, 
+              color: toast.type === 'success' ? '#34A853' : '#EA4335', 
+              borderRadius: '4px', 
+              fontSize: 13 
+            }}>
+              {toast.message}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} noValidate>
             {isSignUp && (
@@ -184,10 +201,6 @@ export default function LoginPage() {
                 }}
               />
             </div>
-
-            {error && (
-              <p style={{ color: 'var(--color-danger)', fontSize: 13, marginBottom: 16 }}>{error}</p>
-            )}
 
             <button
               id="login-submit"
