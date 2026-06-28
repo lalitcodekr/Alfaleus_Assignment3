@@ -1,6 +1,44 @@
 services:
-  # ── Scraper Worker ─────────────────────────────────────────────────────────
-  # Deploy from: workers/scraper/
+  # ── API (Hono / Node.js) ───────────────────────────────────────────────────
+  - type: web
+    name: talentiq-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: apps/api
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: SCRAPER_WORKER_URL
+        sync: false
+      - key: JD_ANALYSIS_WORKER_URL
+        sync: false
+      - key: SCORER_WORKER_URL
+        sync: false
+      - key: TRANSCRIBER_WORKER_URL
+        sync: false
+
+  # ── Scraper Worker (Python / Playwright) ───────────────────────────────────
   - type: web
     name: talentiq-scraper-worker
     runtime: docker
@@ -9,14 +47,11 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        sync: false        # Set in Render dashboard
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: PORT
-        value: "10000"     # Render assigns its own port via $PORT
 
-  # ── JD Analysis Worker ─────────────────────────────────────────────────────
-  # Deploy from: workers/jd-analysis/
+  # ── JD Analysis Worker (Python / Claude) ───────────────────────────────────
   - type: web
     name: talentiq-jd-analysis-worker
     runtime: docker
@@ -29,8 +64,7 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
 
-  # ── Scorer Worker ──────────────────────────────────────────────────────────
-  # Deploy from: workers/scorer/
+  # ── Scorer Worker (Python / sentence-transformers) ─────────────────────────
   - type: web
     name: talentiq-scorer-worker
     runtime: docker
@@ -43,8 +77,7 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
 
-  # ── Transcriber Worker ─────────────────────────────────────────────────────
-  # Deploy from: workers/transcriber/
+  # ── Transcriber Worker (Python / Whisper + ffmpeg) ─────────────────────────
   - type: web
     name: talentiq-transcriber-worker
     runtime: docker
