@@ -1,8 +1,8 @@
 # TalentIQ
 **AI-Powered Talent Screening & Interview Intelligence Platform**
 
-[![Live API](https://img.shields.io/badge/Live%20API-Railway-blueviolet?logo=railway)](https://talentiq-api.up.railway.app)
-[![Android APK](https://img.shields.io/badge/Android%20APK-Download-3DDC84?logo=android)](https://github.com/lalitcodekr/Alfaleus/releases/latest/download/talentiq.apk)
+[![Live API](https://img.shields.io/badge/Live%20API-Render-blueviolet?logo=render)](https://talentiq-api-dhw7.onrender.com)
+[![Android APK](https://img.shields.io/badge/Android%20APK-Download-3DDC84?logo=android)](https://github.com/lalitcodekr/Alfaleus_Assignment3/raw/main/talentiq.apk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 TalentIQ automates the full pre-hire funnel — from job description parsing and passive candidate scraping, through semantic scoring and AI-generated interview questions, to async video interviews on Android and AI-generated scorecards — with zero manual screening overhead.
@@ -64,7 +64,7 @@ TalentIQ is a microservices system. All inter-service communication is HTTP. Job
 | **Android App** | `mobile/` | — | Expo 56, React Native 0.85, Zustand |
 | **Scraper** | `workers/scraper` | 8001 | Python 3.12, Playwright, BeautifulSoup |
 | **JD Analysis** | `workers/jd-analysis` | 8002 | Python 3.12, Claude 3.5 Sonnet |
-| **Scorer** | `workers/scorer` | 8003 | Python 3.12, sentence-transformers, Claude 3.5 Sonnet, pgvector |
+| **Scorer** | `workers/scorer` | 8003 | Python 3.12, lightweight TF-IDF, Claude 3.5 Sonnet, pgvector |
 | **Transcriber** | `workers/transcriber` | 8004 | Python 3.12, faster-whisper, ffmpeg |
 
 ---
@@ -77,7 +77,7 @@ When a candidate profile is scraped, the Scorer worker evaluates it across **fou
 
 | Dimension | Weight | What it measures |
 |-----------|--------|-----------------|
-| **Technical** | 35% | Hard skill overlap between candidate skills and JD required stack. Uses sentence-transformer cosine similarity between skill embeddings (`all-MiniLM-L6-v2`). |
+| **Technical** | 35% | Hard skill overlap between candidate skills and JD required stack. Uses fast TF-IDF cosine similarity between skills to keep memory usage low on free tiers. |
 | **Seniority** | 25% | Title-level and experience-level match. Regex extraction of years + title rank scoring (Junior → Principal). Compared against JD seniority keywords. |
 | **Domain** | 25% | Industry/domain alignment. Candidate's current company/title domain vs JD industry signals. |
 | **Implicit** | 15% | Red flags and implicit signals: short tenures, unexplained gaps, title inflation. Applied as a penalty multiplier. |
@@ -136,27 +136,27 @@ The scraper uses a **layered defence** against throttling:
 
 ---
 
-## ⚡ Whisper Model Benchmarks on Railway CPU
+## ⚡ Whisper Model Benchmarks on CPU (Render Free Tier)
 
-The transcriber worker runs **`faster-whisper`** with the **`base`** model and **`int8` quantization** on Railway's shared CPU tier (2 vCPU, ~2GB RAM).
+The transcriber worker runs **`faster-whisper`** with the **`base`** model and **`int8` quantization** on Render's free tier (512MB RAM, shared CPU).
 
 See [docs/whisper_benchmark.md](docs/whisper_benchmark.md) for full benchmark results.
 
 ### Summary Table
 
-| Model | Compute | Audio (60s) | RTF | Memory | Railway fit? |
+| Model | Compute | Audio (60s) | RTF | Memory | Render Free fit? |
 |-------|---------|-------------|-----|--------|-------------|
 | `tiny` | int8 | 60s input | ~0.12× | ~90MB | ✅ fastest |
 | **`base`** | **int8** | **60s input** | **~0.22×** | **~150MB** | **✅ chosen** |
-| `small` | int8 | 60s input | ~0.55× | ~470MB | ✅ acceptable |
-| `medium` | int8 | 60s input | ~1.4× | ~1.5GB | ⚠️ slow |
+| `small` | int8 | 60s input | ~0.55× | ~470MB | ⚠️ tight |
+| `medium` | int8 | 60s input | ~1.4× | ~1.5GB | ❌ OOM |
 | `large-v3` | int8 | 60s input | ~4×+ | ~3GB+ | ❌ OOM |
 
 **RTF (Real-Time Factor)**: time-to-transcribe ÷ audio-duration. RTF < 1.0 means faster than real-time.
 
-**Decision**: `base/int8` transcribes a 2-minute interview answer in ~26 seconds on Railway CPU. Acceptable for async processing where the candidate is not waiting for real-time feedback.
+**Decision**: `base/int8` transcribes a 2-minute interview answer in ~26 seconds on a shared CPU. Acceptable for async processing where the candidate is not waiting for real-time feedback.
 
-The model is **pre-downloaded at Docker build time** (`RUN python -c "WhisperModel('base', ...)"`) so Railway cold starts are instant with no runtime download penalty.
+The model is **pre-downloaded at Docker build time** (`RUN python -c "WhisperModel('base', ...)"`) so cold starts are instant with no runtime download penalty.
 
 ---
 
@@ -214,41 +214,23 @@ record video (mp4/webm)
 
 ## 🚀 Deployment Instructions
 
-### Option A: Railway (Recommended — live demo)
+### Option A: Render.com (100% Free Tier)
 
-**Prerequisites:** Railway CLI, a Railway account, Neon PostgreSQL database, Cloudflare R2 bucket.
+TalentIQ is designed to run entirely on Render's free tier with zero credit card required.
 
-```bash
-# 1. Install Railway CLI
-npm install -g @railway/cli
+**Prerequisites:** Render account (GitHub auth), Neon PostgreSQL database, Cloudflare R2 bucket.
 
-# 2. Login and link project
-railway login
-railway link
-
-# 3. Set environment variables (repeat for each)
-railway variables set DATABASE_URL="postgres://..."
-railway variables set ANTHROPIC_API_KEY="sk-ant-..."
-railway variables set R2_ACCESS_KEY_ID="..."
-railway variables set R2_SECRET_ACCESS_KEY="..."
-railway variables set R2_ACCOUNT_ID="..."
-railway variables set R2_BUCKET_NAME="alfaleus-interviews"
-railway variables set RESEND_API_KEY="re_..."
-railway variables set BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
-railway variables set JWT_SECRET="$(openssl rand -hex 32)"
-
-# 4. After API deploys, set worker URLs using Railway's internal networking:
-railway variables set SCRAPER_WORKER_URL="http://scraper-worker.railway.internal:8001"
-railway variables set JD_ANALYSIS_WORKER_URL="http://jd-analysis-worker.railway.internal:8002"
-railway variables set SCORER_WORKER_URL="http://scorer-worker.railway.internal:8003"
-railway variables set TRANSCRIBER_WORKER_URL="http://transcriber-worker.railway.internal:8004"
-
-# 5. Deploy all services
-railway up
-
-# 6. Push DB schema (one-time)
-cd apps/api && DATABASE_URL="$(railway variables get DATABASE_URL)" npm run db:push
-```
+1. Go to **Render Dashboard** → **New +** → **Blueprint**
+2. Connect your cloned GitHub repository (`Alfaleus_Assignment3`).
+3. Render will read `render.yaml` and provision **all 5 services** (API + 4 Python Workers).
+4. For each service, set the required environment variables in the Render Dashboard (or via a secret file):
+   - `DATABASE_URL`: `postgres://...`
+   - `ANTHROPIC_API_KEY`: `sk-ant-...`
+   - `R2_*` variables (for API and Transcriber)
+   - `RESEND_API_KEY` (for API)
+   - `BETTER_AUTH_SECRET` & `JWT_SECRET` (for API)
+5. Save and deploy. Render automatically injects the `PORT` environment variable for each service.
+6. Run `npm run db:push` in `apps/api` locally with your `DATABASE_URL` to provision the schema.
 
 ### Option B: Docker Compose (Local)
 

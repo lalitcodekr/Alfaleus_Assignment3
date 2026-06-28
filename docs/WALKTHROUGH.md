@@ -1,153 +1,64 @@
-# TalentIQ — Demo Walkthrough
+# TalentIQ — 5-Minute Demo Walkthrough
 
-> **Estimated reading time: ~4 minutes**  
-> This walkthrough covers the complete end-to-end flow of the TalentIQ platform.
-
----
-
-## Overview
-
-TalentIQ is a full-stack AI hiring platform. The demo flow covers six stages:
-
-```
-[1] JD Posted → [2] Candidates Scraped & Scored → [3] Interview Invitation Sent
-     → [4] Interview Completed on Android → [5] Scorecard Generated → [6] Candidates Compared
-```
+This guide walks you through the entire automated hiring pipeline of TalentIQ, showing how the system replaces manual screening with AI orchestration.
 
 ---
 
-## Stage 1 — Job Description Posted
+## Step 1: Post the Job Description
 
-**Actor:** Recruiter (Web Portal)
+1. **Open the Web Portal** at `https://talentiq-web.onrender.com` (or your local equivalent).
+2. Click **Create New Job**.
+3. Paste the raw text of a Job Description (e.g., "Senior React Developer, 4+ years experience, Next.js, TypeScript").
+4. Click **Parse Job Description**.
+   - **Behind the scenes**: The API triggers the `jd-analysis` worker.
+   - Claude 3.5 Sonnet extracts structured criteria: required skills, seniority level, domain, and generates 4 tailored interview questions specifically targeting this role.
 
-The recruiter navigates to the web portal at `https://talentiq-web.up.railway.app` and logs in.
+## Step 2: Candidates Scraped & Scored (Zero-Touch)
 
-On the **Jobs** page, they click **"New Job"** and paste in the job description for a *Senior React Engineer* role.
+1. Once the JD is active, click **Find Candidates**.
+2. **Behind the scenes**:
+   - The `scraper` worker spins up headless Chromium via Playwright.
+   - It searches LinkedIn (public profiles) and Naukri for developers matching the core JD keywords.
+   - Candidate profiles (Name, Title, Skills, Experience, Profile Link) are extracted and saved.
+3. The `scorer` worker immediately evaluates each scraped profile:
+   - **Technical Match**: TF-IDF similarity between candidate skills and JD stack.
+   - **Seniority Match**: Validates years of experience and title rank.
+   - **Domain Match**: Checks if current company aligns with the role.
+   - **Implicit Signals**: Flags job-hopping or short tenures.
+4. **Result**: You instantly see a ranked list of candidates on your dashboard. Anyone scoring above 70 is automatically shortlisted.
 
-**Behind the scenes:**
-- `POST /api/jobs` creates a job record with `status: 'parsing'`
-- The API fires `POST http://jd-analysis-worker/parse-jd` with the raw JD text
-- The JD Analysis Worker (Claude 3.5 Sonnet) extracts:
-  - Required hard skills: `["React", "TypeScript", "GraphQL", "AWS"]`
-  - Seniority level: `"Senior"` (5+ years expected)
-  - Domain: `"FinTech / B2B SaaS"`
-  - Shortlist threshold: `70` (composite score)
-- The `parsed_jd` JSONB is written back to the `jobs` table
-- Job status transitions to `'active'`
+## Step 3: Interview Invitation Sent
 
----
+1. Select a shortlisted candidate (e.g., "Alex Johnson - Score: 85").
+2. Click **Invite to Interview**.
+3. **Behind the scenes**:
+   - The API creates a secure, one-time `interview_token`.
+   - An email is dispatched via Resend to the candidate containing the token and instructions to download the TalentIQ Android app.
 
-## Stage 2 — Candidates Scraped & Scored
+## Step 4: Candidate Completes Android Interview
 
-**Actor:** Recruiter clicks "Find Candidates"
+1. The candidate opens the **TalentIQ Android App**.
+2. They enter their secure `interview_token`.
+3. The app fetches the 4 customized interview questions generated in Step 1.
+4. The candidate records their video answers.
+   - **Behind the scenes**: The app uses chunked multipart uploads. Even over 3G/4G, chunks are streamed directly to Cloudflare R2 object storage. No lost progress if the network drops.
+5. The candidate taps **Submit**.
 
-**Scraping:**
-- `POST /api/jobs/:id/scrape` fires `POST http://scraper-worker/scrape` with `{ job_id, query: "Senior React Engineer Bangalore" }`
-- The Scraper worker runs **LinkedIn public search** and **Naukri.com** concurrently via `asyncio.gather()`
-- LinkedIn: Playwright headless Chromium with random User-Agent, 2s inter-page delay, auth-wall detection, pagination up to 5 pages (50 results)
-- Naukri: Playwright + BeautifulSoup parsing of listing cards
-- Results are **deduplicated** by profile URL fuzzy match
-- ~30 candidates inserted into the `candidates` table
+## Step 5: Scorecard Generated (AI Transcriber + Evaluator)
 
-**Scoring:**
-- For each candidate, `POST http://scorer-worker/score` is called
-- The Scorer computes 4 dimension scores:
-  - **Technical (35%)**: sentence-transformer cosine similarity between candidate skill embeddings and JD required skills
-  - **Seniority (25%)**: title rank + years-of-experience vs JD level
-  - **Domain (25%)**: company/title industry match to JD domain
-  - **Implicit (15%)**: red flag penalty (short tenures, gap years, title inflation)
-- Composite score written to `candidate_scores`; candidates above 70 auto-shortlisted
-- Candidate embedding (384-dim `all-MiniLM-L6-v2`) stored in pgvector column for comparison
+1. **Behind the scenes**:
+   - The API enqueues a `transcribe` job to the Postgres queue.
+   - The `transcriber` worker downloads the video from Cloudflare R2.
+   - **ffmpeg** extracts the audio track.
+   - **faster-whisper** (running on CPU) transcribes the audio to text locally in seconds.
+   - Claude evaluates the transcript for *Relevance, Clarity, Specificity, and Depth* against the original question.
+2. The AI generates a comprehensive **Scorecard**, concluding with a hiring signal (e.g., "Strong Hire") and a confidence score.
 
-The recruiter sees the scored candidate list, sorted by composite score, with red flag badges and shortlist indicators.
+## Step 6: Candidates Compared
 
----
-
-## Stage 3 — Interview Invitation Sent
-
-**Actor:** Recruiter clicks "Invite" on a shortlisted candidate
-
-- `POST /api/candidates/:id/invite` runs:
-  1. Creates an `interviews` record with a random 64-char `token` (7-day expiry)
-  2. Calls `POST http://jd-analysis-worker/generate-questions` to generate 4 role-specific interview questions based on `parsed_jd` + candidate profile
-  3. Questions are stored in `interviews.questions` (JSONB array)
-  4. Sends a Resend email to the candidate with a deeplink: `talentiq://interview/<token>` or a web fallback
-  5. Interview status transitions to `'invited'`
-
-The candidate receives an email with the subject **"Invitation to interview for Senior React Engineer"** and a token to paste into the Android app.
+1. Back in the **Web Portal**, navigate to the **Interviews** tab.
+2. You can now see the AI-generated scorecards for all completed interviews side-by-side.
+3. The recruiter reviews the AI's *Ranking Justification* and *Follow-up Questions* to make the final human hiring decision.
 
 ---
-
-## Stage 4 — Interview Completed on Android App
-
-**Actor:** Candidate (on their Android device)
-
-1. **Opens the TalentIQ app** (downloaded via the APK link in README)
-2. **Welcome Screen**: Pastes the interview token from their email
-3. App calls `GET /api/interviews/:token` → receives `{ questions: [...], candidate_name, role_title }`
-4. **Interview Screen**: Camera activates (front-facing). Candidate sees Question 1 of 4 with a progress bar.
-5. Candidate taps the red record button → records their video answer (up to 3 minutes)
-6. On stop: video is uploaded via `POST /api/interviews/:token/chunk` as a single multipart chunk
-7. Repeat for Questions 2, 3, 4
-8. After Question 4 upload, app calls `POST /api/interviews/:token/submit` → interview marked `'completed'`
-9. **Done Screen**: "Thank you! Your responses are being processed."
-
-**Chunked upload internals:**
-- Each video file is uploaded as `chunk_index=0, total_chunks=1`
-- API writes chunk to Cloudflare R2 at `interviews/<token>/q<n>/chunk_0`
-- When `videoChunksReceived == totalChunks`, `assembleChunks()` runs non-blocking:
-  - Concatenates all chunk buffers
-  - Writes final `video.webm` to R2
-  - Deletes chunk objects
-  - Enqueues `'transcribe-answer'` job via pg-boss
-
----
-
-## Stage 5 — Scorecard Generated
-
-**Actor:** System (automatic, async)
-
-pg-boss dequeues `'transcribe-answer'` jobs and calls `POST http://transcriber-worker/transcribe`:
-
-1. **`extract_audio(r2_key)`**: Downloads `video.webm` from R2, runs ffmpeg to extract 16kHz mono WAV
-2. **`transcribe(audio_path)`**: faster-whisper `base/int8` model transcribes the audio → text string
-3. **`score_answer(transcription, question_text)`**: Claude 3.5 Sonnet scores the answer on `relevance`, `clarity`, `specificity`, `depth` (0–100 each)
-4. Results written to the `answers` row in PostgreSQL
-5. After all 4 answers are processed: **`generate_scorecard()`** is called:
-   - Claude 3.5 Sonnet meta-prompt aggregates all per-answer scores
-   - Outputs: `aggregate_score`, `hire_signal`, `confidence`, `follow_up_questions`, `ranking_justification`
-   - Written to `scorecards` table
-
-**Whisper performance on Railway CPU:** A 2-minute answer is transcribed in ~26 seconds (RTF ≈ 0.22×). All 4 answers complete in under 2 minutes total.
-
----
-
-## Stage 6 — Candidates Compared
-
-**Actor:** Recruiter (Web Portal)
-
-The recruiter opens the **Candidate Comparison** view and selects 2–3 shortlisted candidates.
-
-- `POST /api/comparison` sends all candidate IDs to Claude 3.5 Sonnet
-- Claude compares scorecards side-by-side and generates a `recommendation` field explaining which candidate to advance and why
-- The web portal renders a **side-by-side scorecard table** with:
-  - Composite pre-interview score
-  - Interview aggregate score
-  - Hire signal badge (🟢 Strong Hire / 🟡 Hire / 🔴 No Hire)
-  - AI recommendation paragraph
-
-The recruiter advances the chosen candidate to the next round.
-
----
-
-## Key Technical Highlights
-
-| Feature | Implementation |
-|---------|---------------|
-| No Redis dependency | pg-boss uses existing Postgres for job queuing |
-| Token-gated interviews | 64-char random token, 7-day expiry, one-time use |
-| Chunked upload resilience | Chunks stored independently; assembly is idempotent |
-| Cold-start free Whisper | Model pre-baked into Docker image at build time |
-| Scraping resilience | Graceful auth-wall fallback; partial results preserved |
-| Semantic scoring | MiniLM embeddings + cosine similarity, not keyword matching |
-| Async scorecard | Non-blocking transcription chain; recruiter polls status |
+**Summary**: In under 5 minutes of recruiter time (creating the JD and clicking "Invite"), the system sourced, screened, interviewed, and evaluated candidates autonomously.
