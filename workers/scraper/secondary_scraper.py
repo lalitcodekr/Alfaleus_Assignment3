@@ -1,17 +1,29 @@
 """
-secondary_scraper.py — httpx + BeautifulSoup4 scraper for Naukri/Indeed static HTML.
-Uses tenacity for exponential backoff retries on 429 / 503 errors.
+secondary_scraper.py — GitHub Users API scraper.
+
+Replaces the Naukri scraper (which requires auth for candidate profiles).
+GitHub's public /search/users endpoint returns real developer profiles
+with zero login required. Rate limit: 60/hr unauthenticated, 5000/hr
+with GITHUB_TOKEN.
+
+Data extracted per candidate:
+  - name (display name or login fallback)
+  - title (bio or "Software Developer" fallback)
+  - company (company field or None)
+  - skills (inferred from repos language — fetched per user)
+  - profile_url (github.com/username)
+  - source: "github"
+  - data_confidence: "medium" (real data, but less structured than LinkedIn)
 """
 import asyncio
-import re
+import os
 from typing import List, Optional
 from pydantic import BaseModel
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_result
 import httpx
-from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
+from tenacity import retry, wait_exponential, stop_after_attempt
 
-ua = UserAgent()
+GITHUB_API = "https://api.github.com"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Optional — raises rate limit to 5000/hr
 
 
 class SecondaryCandidate(BaseModel):
@@ -20,78 +32,111 @@ class SecondaryCandidate(BaseModel):
     company: Optional[str] = None
     skills: List[str] = []
     profile_url: Optional[str] = None
-    source: str = "naukri"
-    data_confidence: str = "low"
+    source: str = "github"
+    data_confidence: str = "medium"
 
 
-def _is_rate_limited(response: httpx.Response) -> bool:
-    return response.status_code in (429, 503)
-
-
-@retry(
-    wait=wait_exponential(min=1, max=60),
-    stop=stop_after_attempt(5),
-    retry=retry_if_result(_is_rate_limited),
-)
-async def _fetch(client: httpx.AsyncClient, url: str) -> httpx.Response:
+def _auth_headers() -> dict:
     headers = {
-        "User-Agent": ua.random,
-        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
     }
-    return await client.get(url, headers=headers, timeout=15, follow_redirects=True)
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    return headers
 
 
-def _parse_naukri_results(html: str) -> List[SecondaryCandidate]:
-    """Parse Naukri profile search results from raw HTML."""
-    soup = BeautifulSoup(html, "html.parser")
-    candidates = []
-    
-    # Naukri search result cards have class "srp-jobtuple-wrapper" or similar
-    cards = soup.select("[data-job-id], .cust-job-tuple, .list-top-section")
-    for card in cards:
-        try:
-            name_el = card.select_one(".jobTuple-jobName, .job-title, h2")
-            title_el = card.select_one(".designation, .profile, .designation-link")
-            company_el = card.select_one(".company-name, .subTitle")
-            link_el = card.select_one("a[href]")
-
-            name = re.sub(r"\s+", " ", name_el.get_text()).strip() if name_el else None
-            title = re.sub(r"\s+", " ", title_el.get_text()).strip() if title_el else None
-            company = re.sub(r"\s+", " ", company_el.get_text()).strip() if company_el else None
-            href = link_el.get("href") if link_el else None
-
-            if name:
-                candidates.append(SecondaryCandidate(
-                    name=name,
-                    title=title,
-                    company=company,
-                    profile_url=href,
-                    data_confidence="medium" if (name and title) else "low",
-                ))
-        except Exception:
-            continue
-    return candidates
+@retry(wait=wait_exponential(min=2, max=30), stop=stop_after_attempt(3))
+async def _github_get(client: httpx.AsyncClient, url: str, params: dict = None) -> dict:
+    resp = await client.get(url, headers=_auth_headers(), params=params, timeout=10)
+    if resp.status_code == 403:
+        raise RuntimeError("GitHub rate limit hit")
+    resp.raise_for_status()
+    return resp.json()
 
 
-async def scrape_naukri(query: str, max_results: int = 50) -> List[SecondaryCandidate]:
-    """Scrape Naukri job seeker profiles for the given query."""
+async def _get_top_languages(client: httpx.AsyncClient, username: str) -> List[str]:
+    """Fetch top programming languages from a user's public repos."""
+    try:
+        repos = await _github_get(
+            client,
+            f"{GITHUB_API}/users/{username}/repos",
+            params={"sort": "pushed", "per_page": 10, "type": "owner"},
+        )
+        lang_counts: dict[str, int] = {}
+        for repo in repos:
+            lang = repo.get("language")
+            if lang:
+                lang_counts[lang] = lang_counts.get(lang, 0) + 1
+        # Return top 5 languages by repo count
+        return [l for l, _ in sorted(lang_counts.items(), key=lambda x: -x[1])[:5]]
+    except Exception:
+        return []
+
+
+async def scrape_github(query: str, max_results: int = 50) -> List[SecondaryCandidate]:
+    """
+    Search GitHub users matching the job query.
+    Fetches profile + top languages per user.
+    """
     results: List[SecondaryCandidate] = []
-    base_url = "https://www.naukri.com/jobapi/v3/search"
-    
+
+    # Build GitHub user search query from job query
+    # e.g. "Senior React Engineer Bangalore" -> "react developer location:india"
+    search_terms = query.lower()
+    gh_query = f"{search_terms} type:user"
+
     async with httpx.AsyncClient() as client:
-        for page in range(1, 6):  # up to 5 pages
-            if len(results) >= max_results:
-                break
+        page = 1
+        while len(results) < max_results and page <= 5:
             try:
-                url = f"https://www.naukri.com/{query.replace(' ', '-')}-jobs-{page}"
-                response = await _fetch(client, url)
-                page_results = _parse_naukri_results(response.text)
-                results.extend(page_results)
-                if not page_results:
-                    break
-                await asyncio.sleep(1.0)
+                data = await _github_get(
+                    client,
+                    f"{GITHUB_API}/search/users",
+                    params={"q": gh_query, "per_page": 10, "page": page},
+                )
             except Exception as e:
-                print(f"Naukri scraper error on page {page}: {e}")
+                print(f"GitHub search error page {page}: {e}")
                 break
+
+            items = data.get("items", [])
+            if not items:
+                break
+
+            # Fetch full profile + languages concurrently for this page
+            async def _enrich(item: dict) -> Optional[SecondaryCandidate]:
+                login = item.get("login", "")
+                try:
+                    profile = await _github_get(client, f"{GITHUB_API}/users/{login}")
+                    langs = await _get_top_languages(client, login)
+
+                    display_name = profile.get("name") or login
+                    bio = profile.get("bio") or "Software Developer"
+                    company = (profile.get("company") or "").strip().lstrip("@") or None
+
+                    return SecondaryCandidate(
+                        name=display_name,
+                        title=bio[:100] if bio else "Software Developer",
+                        company=company,
+                        skills=langs,
+                        profile_url=f"https://github.com/{login}",
+                        data_confidence="medium" if profile.get("name") else "low",
+                    )
+                except Exception:
+                    return None
+
+            enriched = await asyncio.gather(*[_enrich(item) for item in items])
+            for cand in enriched:
+                if cand and cand.name:
+                    results.append(cand)
+
+            page += 1
+            await asyncio.sleep(1.0)  # respect GitHub rate limits
 
     return results[:max_results]
+
+
+# Keep the original function name so main.py import doesn't break
+async def scrape_naukri(query: str, max_results: int = 50) -> List[SecondaryCandidate]:
+    """Alias — routes to GitHub scraper. Naukri requires auth; GitHub is public."""
+    return await scrape_github(query, max_results=max_results)

@@ -70,7 +70,6 @@ async def score(req: ScoreRequest):
         shortlisted = result.composite_score >= threshold
 
         # --- Step 4: Generate candidate embedding and store it ---
-        from embedder import _build_candidate_text_for_embed  # convenience alias
         candidate_text = (
             f"{candidate.get('title', '')} {candidate.get('company', '')} "
             + " ".join(candidate.get("skills") or [])

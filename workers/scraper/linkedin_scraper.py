@@ -7,6 +7,7 @@ NOTE: LinkedIn heavily throttles public search. This scraper:
   - Falls back gracefully when blocked (returns partial results)
   - Paginates up to 50 results (5 pages × 10 results)
 """
+import os
 import asyncio
 import re
 from typing import List, Optional
@@ -64,6 +65,61 @@ async def _parse_people_cards(page) -> List[LinkedInCandidate]:
     return candidates
 
 
+import anthropic as _anthropic
+import json as _json
+
+async def _generate_ai_candidates(query: str, count: int = 8) -> List[LinkedInCandidate]:
+    """
+    When LinkedIn is unavailable, use Claude to generate realistic candidate
+    profiles tuned to the actual job query. These are clearly marked as
+    synthetic (data_confidence='synthetic') so the recruiter UI can badge them.
+    """
+    client = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    prompt = f"""Generate {count} realistic but fictional candidate profiles for this job search query: "{query}"
+
+Return ONLY a JSON array. No explanation, no markdown, no code fences.
+Each object must have exactly these keys:
+- "name": string (realistic full name, South Asian / global mix)
+- "title": string (current job title matching the query level)
+- "company": string (realistic Indian or global tech company name)
+- "skills": array of 4-7 skill strings relevant to the query
+- "profile_url": string (fake linkedin.com/in/slug URL)
+
+Vary seniority, company size, and skill depth. Make profiles plausible for a real recruiter to evaluate."""
+
+    message = client.messages.create(
+        model="claude-3-5-haiku-20241022",
+        max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text.strip()
+
+    try:
+        profiles = _json.loads(raw)
+    except _json.JSONDecodeError:
+        # Fallback if Claude returns malformed JSON
+        return []
+
+    candidates = []
+    for p in profiles:
+        try:
+            candidates.append(LinkedInCandidate(
+                name=p["name"],
+                title=p.get("title"),
+                company=p.get("company"),
+                skills=p.get("skills", []),
+                profile_url=p.get("profile_url"),
+                source="linkedin_ai_generated",
+                data_confidence="synthetic",
+            ))
+        except Exception:
+            continue
+
+    return candidates
+
+
 async def scrape_linkedin(query: str, max_results: int = 50) -> List[LinkedInCandidate]:
     """
     Scrape LinkedIn people search for the given query string.
@@ -75,6 +131,7 @@ async def scrape_linkedin(query: str, max_results: int = 50) -> List[LinkedInCan
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(
+                executable_path=os.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"),
                 headless=True,
                 args=[
                     "--no-sandbox",
@@ -123,5 +180,9 @@ async def scrape_linkedin(query: str, max_results: int = 50) -> List[LinkedInCan
             await browser.close()
     except Exception as e:
         print(f"LinkedIn scraper error: {e}")
+
+    if not results:
+        print(f"LinkedIn blocked — generating AI candidates for: {query!r}")
+        results = await _generate_ai_candidates(query, count=8)
 
     return results[:max_results]

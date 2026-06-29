@@ -12,7 +12,7 @@ from typing import List, Union
 from linkedin_scraper import LinkedInCandidate
 from secondary_scraper import SecondaryCandidate
 
-CONFIDENCE_RANK = {"high": 3, "medium": 2, "low": 1}
+CONFIDENCE_RANK = {"high": 3, "medium": 2, "low": 1, "synthetic": 0}
 
 AnyCandidate = Union[LinkedInCandidate, SecondaryCandidate]
 
@@ -26,66 +26,52 @@ def _similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
 
-def _is_duplicate(a: AnyCandidate, b: AnyCandidate, threshold: float = 0.85) -> bool:
-    """Returns True if two candidates refer to the same person."""
-    name_sim = _similarity(
-        _normalize(a.name),
-        _normalize(b.name),
-    )
-    if name_sim < threshold:
-        return False
-    if a.company and b.company:
-        company_sim = _similarity(
-            _normalize(a.company),
-            _normalize(b.company),
-        )
-        return company_sim >= 0.7
-    return name_sim >= 0.92  # No company — require higher name similarity
-
-
-def _merge(primary: AnyCandidate, secondary: AnyCandidate) -> dict:
-    """Merge two candidate records, preferring the higher-confidence one."""
-    if CONFIDENCE_RANK.get(primary.data_confidence, 0) >= CONFIDENCE_RANK.get(secondary.data_confidence, 0):
-        base, extra = primary, secondary
-    else:
-        base, extra = secondary, primary
-
-    merged_skills = list(set((base.skills or []) + (extra.skills or [])))
-
-    return {
-        "name": base.name,
-        "title": base.title or extra.title,
-        "company": base.company or extra.company,
-        "skills": merged_skills,
-        "profile_url": base.profile_url or extra.profile_url,
-        "source": base.source,
-        "data_confidence": base.data_confidence,
-    }
-
-
 def deduplicate(candidates: List[AnyCandidate]) -> List[dict]:
     """
-    Deduplicate and merge a mixed list of LinkedIn + secondary candidates.
-    Returns a flat list of merged candidate dicts.
+    Deduplicate a mixed list of LinkedInCandidate + SecondaryCandidate.
+    Works entirely in dict-space after the first model_dump() call
+    to avoid Pydantic model reconstruction bugs.
     """
+    raw: List[dict] = [c.model_dump() for c in candidates]
     merged: List[dict] = []
-    used = set()
+    used: set[int] = set()
 
-    for i, cand in enumerate(candidates):
+    for i, base in enumerate(raw):
         if i in used:
             continue
-        current = cand.model_dump()
-        for j, other in enumerate(candidates):
+        current = dict(base)
+        for j, other in enumerate(raw):
             if j <= i or j in used:
                 continue
-            if _is_duplicate(cand, other):
-                current = _merge(
-                    # Convert back to model instances for merge logic
-                    type(cand)(**{k: v for k, v in current.items() if k in cand.model_fields}),
-                    other,
-                )
+            if _is_duplicate_dicts(current, other):
+                current = _merge_dicts(current, other)
                 used.add(j)
         merged.append(current)
         used.add(i)
 
     return merged
+
+
+def _is_duplicate_dicts(a: dict, b: dict, threshold: float = 0.85) -> bool:
+    name_sim = _similarity(_normalize(a.get("name", "")), _normalize(b.get("name", "")))
+    if name_sim < threshold:
+        return False
+    if a.get("company") and b.get("company"):
+        return _similarity(_normalize(a["company"]), _normalize(b["company"])) >= 0.7
+    return name_sim >= 0.92
+
+
+def _merge_dicts(primary: dict, secondary: dict) -> dict:
+    if CONFIDENCE_RANK.get(primary.get("data_confidence"), 0) >= \
+       CONFIDENCE_RANK.get(secondary.get("data_confidence"), 0):
+        base, extra = primary, secondary
+    else:
+        base, extra = secondary, primary
+
+    return {
+        **base,
+        "title": base.get("title") or extra.get("title"),
+        "company": base.get("company") or extra.get("company"),
+        "skills": list(set((base.get("skills") or []) + (extra.get("skills") or []))),
+        "profile_url": base.get("profile_url") or extra.get("profile_url"),
+    }
