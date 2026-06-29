@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install fastapi uvicorn asyncpg pydantic python-dotenv httpx beautifulsoup4 fake-useragent tenacity anthropic pytest
+      - run: pip install fastapi uvicorn asyncpg pydantic python-dotenv httpx beautifulsoup4 fake-useragent tenacity anthropic playwright pytest
       - run: pytest -v
 
   lint:

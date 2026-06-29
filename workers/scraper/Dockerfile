@@ -46,7 +46,7 @@ WORKDIR /app
 COPY . .
 
 RUN pip install --no-cache-dir fastapi uvicorn playwright httpx beautifulsoup4 \
-    tenacity fake-useragent asyncpg pydantic python-dotenv
+    tenacity fake-useragent asyncpg pydantic python-dotenv anthropic
 RUN playwright install-deps chromium
 
 EXPOSE 8001

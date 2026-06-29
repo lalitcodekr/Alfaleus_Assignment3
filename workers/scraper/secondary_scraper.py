@@ -69,7 +69,7 @@ async def _get_top_languages(client: httpx.AsyncClient, username: str) -> List[s
             if lang:
                 lang_counts[lang] = lang_counts.get(lang, 0) + 1
         # Return top 5 languages by repo count
-        return [l for l, _ in sorted(lang_counts.items(), key=lambda x: -x[1])[:5]]
+        return [lang for lang, _ in sorted(lang_counts.items(), key=lambda x: -x[1])[:5]]
     except Exception:
         return []
 

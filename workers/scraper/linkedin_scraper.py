@@ -15,6 +15,8 @@ from pydantic import BaseModel
 from fake_useragent import UserAgent
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+import anthropic as _anthropic
+import json as _json
 
 ua = UserAgent()
 
@@ -65,8 +67,7 @@ async def _parse_people_cards(page) -> List[LinkedInCandidate]:
     return candidates
 
 
-import anthropic as _anthropic
-import json as _json
+
 
 async def _generate_ai_candidates(query: str, count: int = 8) -> List[LinkedInCandidate]:
     """
