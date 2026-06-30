@@ -1,8 +1,14 @@
 # TalentIQ
 **AI-Powered Talent Screening & Interview Intelligence Platform**
 
+[![Live Web Portal](https://img.shields.io/badge/Live%20Web%20Portal-Vercel-black?logo=vercel)](https://talentiq-web.vercel.app)
 [![Live API](https://img.shields.io/badge/Live%20API-Render-blueviolet?logo=render)](https://talentiq-api-dhw7.onrender.com)
 [![Android APK](https://img.shields.io/badge/Android%20APK-Download-3DDC84?logo=android)](https://github.com/lalitcodekr/Alfaleus_Assignment3/raw/main/talentiq.apk)
+
+## 🔗 Live Links
+- **Web Portal (Recruiters):** [https://talentiq-web.vercel.app](https://talentiq-web.vercel.app)
+- **Backend API (Render):** [https://talentiq-api-dhw7.onrender.com](https://talentiq-api-dhw7.onrender.com)
+- **Android APK (Candidates):** [Download APK](https://github.com/lalitcodekr/Alfaleus_Assignment3/raw/main/talentiq.apk)
 
 TalentIQ automates the full pre-hire funnel — from job description parsing and passive candidate scraping, through semantic scoring and AI-generated interview questions, to async video interviews on Android and AI-generated scorecards — with zero manual screening overhead.
 
