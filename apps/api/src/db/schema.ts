@@ -11,6 +11,7 @@ const vector = customType<{ data: number[]; driverData: string }>({
 
 export const jobs = pgTable('jobs', {
   id: varchar('id', { length: 255 }).primaryKey(),
+  userId: text('user_id').references(() => user.id),
   title: text('title').notNull(),
   jdText: text('jd_text').notNull(),
   parsedJd: jsonb('parsed_jd'),

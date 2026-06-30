@@ -21,9 +21,11 @@ const createJobSchema = z.object({
 jobsRouter.post('/', zValidator('json', createJobSchema), async (c) => {
     const { title, jd_text, shortlist_threshold } = c.req.valid('json');
     const jobId = randomUUID();
+    const user = c.get('user');
 
     await db.insert(jobs).values({
         id: jobId,
+        userId: user.id,
         title,
         jdText: jd_text,
         shortlistThreshold: shortlist_threshold ?? 70,
@@ -148,6 +150,7 @@ jobsRouter.post('/:id/retrigger', async (c) => {
 });
 
 jobsRouter.get('/', async (c) => {
+    const user = c.get('user');
     const allJobs = await db.select({
         id: jobs.id,
         title: jobs.title,
@@ -160,6 +163,7 @@ jobsRouter.get('/', async (c) => {
       .leftJoin(candidates, sql`${jobs.id} = ${candidates.jobId}`)
       .leftJoin(sql`candidate_scores`, sql`${candidates.id} = candidate_scores.candidate_id`)
       .leftJoin(sql`interviews`, sql`${candidates.id} = interviews.candidate_id`)
+      .where(eq(jobs.userId, user.id))
       .groupBy(jobs.id)
       .orderBy(desc(jobs.createdAt));
 
