@@ -213,9 +213,10 @@ export default function LoginPage() {
 
             <div style={{ display: 'flex', gap: 12 }}>
               <button
-                type="button" onClick={() => handleSocialSignIn('google')}
+                type="button" disabled
                 className="btn btn-ghost"
-                style={{ flex: 1, justifyContent: 'center', padding: '12px', borderRadius: 'var(--radius-md)' }}
+                title="Google sign-in will be implemented in a future update"
+                style={{ flex: 1, justifyContent: 'center', padding: '12px', borderRadius: 'var(--radius-md)', opacity: 0.6, cursor: 'not-allowed' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path fill="#4285F4" d="M23.745 12.27c0-.825-.075-1.62-.21-2.385H12.15v4.515h6.51c-.285 1.47-1.11 2.715-2.385 3.555v2.94h3.855c2.25-2.07 3.615-5.13 3.615-8.625z" />
@@ -223,17 +224,18 @@ export default function LoginPage() {
                   <path fill="#FBBC05" d="M5.34 14.28c-.24-.72-.375-1.485-.375-2.28s.135-1.56.375-2.28V6.705H1.365C.54 8.355 0 10.125 0 12s.54 3.645 1.365 5.295l3.975-3.015z" />
                   <path fill="#EA4335" d="M12.15 4.695c1.77 0 3.36.615 4.605 1.8l3.435-3.435C18.12 1.155 15.39 0 12.15 0 7.425 0 3.36 2.715 1.365 6.705l3.975 3.015c.96-2.88 3.645-5.025 6.81-5.025z" />
                 </svg>
-                Google
+                Google (Soon)
               </button>
               <button
-                type="button" onClick={() => handleSocialSignIn('github')}
+                type="button" disabled
                 className="btn btn-ghost"
-                style={{ flex: 1, justifyContent: 'center', padding: '12px', borderRadius: 'var(--radius-md)' }}
+                title="GitHub sign-in will be implemented in a future update"
+                style={{ flex: 1, justifyContent: 'center', padding: '12px', borderRadius: 'var(--radius-md)', opacity: 0.6, cursor: 'not-allowed' }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.699-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
                 </svg>
-                GitHub
+                GitHub (Soon)
               </button>
             </div>
           </form>
