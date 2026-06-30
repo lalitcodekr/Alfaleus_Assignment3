@@ -8,7 +8,12 @@ import { requireAuth } from '../middleware/requireAuth';
 import { desc, sql, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
-export const jobsRouter = new Hono();
+type Env = {
+    Variables: {
+        user: { id: string };
+    }
+};
+export const jobsRouter = new Hono<Env>();
 
 jobsRouter.use('*', requireAuth);
 
