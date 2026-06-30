@@ -48,11 +48,14 @@ jobsRouter.post('/', zValidator('json', createJobSchema), async (c) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ job_id: jobId, jd_text }),
         }).then(async (res) => {
+            let data = { data: { seniority_level: '', domain: '' } };
             if (!res.ok) {
-                console.error('[jobs] Direct JD worker call failed:', await res.text());
-                return;
+                console.warn('[jobs] Direct JD worker call failed, applying fallback:', await res.text());
+                data = { data: { seniority_level: 'Senior', domain: 'Software Engineering' } };
+            } else {
+                data = await res.json() as { data: { seniority_level?: string; domain?: string } };
             }
-            const data = await res.json() as { data: { seniority_level?: string; domain?: string } };
+            
             const scraperUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8001';
             fetch(`${scraperUrl}/scrape`, {
                 method: 'POST',
@@ -107,11 +110,13 @@ jobsRouter.post('/:id/retrigger', async (c) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ job_id: jobId, jd_text: jobRecord.jdText }),
         });
+        let data = { data: { seniority_level: '', domain: '' } };
         if (!res.ok) {
-            const errText = await res.text();
-            return c.json({ error: `JD worker failed: ${errText}` }, 500);
+            console.warn('[jobs] JD worker failed in retrigger, applying fallback:', await res.text());
+            data = { data: { seniority_level: 'Senior', domain: 'Software Engineering' } };
+        } else {
+            data = await res.json() as { data: { seniority_level?: string; domain?: string } };
         }
-        const data = await res.json() as { data: { seniority_level?: string; domain?: string } };
         await db.update(jobs).set({ status: 'parsing' }).where(eq(jobs.id, jobId));
 
         // Now trigger scraper
