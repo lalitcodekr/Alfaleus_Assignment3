@@ -59,9 +59,33 @@ candidatesRouter.post('/:id/invite', async (c) => {
             generatedQuestions = data.data.questions;
         } else {
             console.error('Failed to generate questions:', await res.text());
+            generatedQuestions = [
+                {
+                    "question": `Could you walk us through your most significant technical achievement in your previous role?`,
+                    "focus": "Technical depth and communication",
+                    "expected_signals": ["Clear architecture description", "Problem-solving methodology"]
+                },
+                {
+                    "question": `Tell me about a time you had to deal with an ambiguous requirement or shifting priorities.`,
+                    "focus": "Adaptability and project management",
+                    "expected_signals": ["Stakeholder communication", "Prioritization skills"]
+                }
+            ];
         }
     } catch (err) {
         console.error('Error calling question generator:', err);
+        generatedQuestions = [
+            {
+                "question": `Could you walk us through your most significant technical achievement in your previous role?`,
+                "focus": "Technical depth and communication",
+                "expected_signals": ["Clear architecture description", "Problem-solving methodology"]
+            },
+            {
+                "question": `Tell me about a time you had to deal with an ambiguous requirement or shifting priorities.`,
+                "focus": "Adaptability and project management",
+                "expected_signals": ["Stakeholder communication", "Prioritization skills"]
+            }
+        ];
     }
     
     // Render email HTML
