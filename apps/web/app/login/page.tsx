@@ -26,9 +26,10 @@ export default function LoginPage() {
         await api.post('/api/auth/sign-in/email', { email, password });
         router.push('/');
       }
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '';
       setToast({
-        message: err.message && !err.message.startsWith('Request failed') ? err.message : (isSignUp ? 'Sign up failed.' : 'Invalid email or password.'),
+        message: errorMessage && !errorMessage.startsWith('Request failed') ? errorMessage : (isSignUp ? 'Sign up failed.' : 'Invalid email or password.'),
         type: 'error'
       });
     } finally {

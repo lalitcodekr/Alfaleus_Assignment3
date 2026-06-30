@@ -80,7 +80,7 @@ export default function DashboardPage() {
               Welcome back
             </h1>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: 15 }}>
-              Here's what's happening with your recruitment pipeline today.
+              Here&apos;s what&apos;s happening with your recruitment pipeline today.
             </p>
           </div>
           <button
