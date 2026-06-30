@@ -35,7 +35,7 @@ export async function initQueue() {
                 body: JSON.stringify({ job_id, jd_text: jobRecord.jdText })
             });
 
-            let data = { data: { seniority_level: '', domain: '' } };
+            let data: { data: { seniority_level?: string; domain?: string } } = { data: { seniority_level: '', domain: '' } };
             if (!res.ok) {
                 console.warn('[jobs] JD Analysis Worker returned error, falling back to mock JD data to allow scraping to proceed.');
                 data = { data: { seniority_level: 'Senior', domain: 'Software Engineering' } };

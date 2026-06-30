@@ -48,7 +48,7 @@ jobsRouter.post('/', zValidator('json', createJobSchema), async (c) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ job_id: jobId, jd_text }),
         }).then(async (res) => {
-            let data = { data: { seniority_level: '', domain: '' } };
+            let data: { data: { seniority_level?: string; domain?: string } } = { data: { seniority_level: '', domain: '' } };
             if (!res.ok) {
                 console.warn('[jobs] Direct JD worker call failed, applying fallback:', await res.text());
                 data = { data: { seniority_level: 'Senior', domain: 'Software Engineering' } };
@@ -110,7 +110,7 @@ jobsRouter.post('/:id/retrigger', async (c) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ job_id: jobId, jd_text: jobRecord.jdText }),
         });
-        let data = { data: { seniority_level: '', domain: '' } };
+        let data: { data: { seniority_level?: string; domain?: string } } = { data: { seniority_level: '', domain: '' } };
         if (!res.ok) {
             console.warn('[jobs] JD worker failed in retrigger, applying fallback:', await res.text());
             data = { data: { seniority_level: 'Senior', domain: 'Software Engineering' } };
