@@ -6,12 +6,13 @@ This guide walks you through the entire automated hiring pipeline of TalentIQ, s
 
 ## Step 1: Post the Job Description
 
-1. **Open the Web Portal** at `https://talentiq-web.onrender.com` (or your local equivalent).
+1. **Open the Web Portal** at `https://talentiq-web.vercel.app` (or your local equivalent).
 2. Click **Create New Job**.
 3. Paste the raw text of a Job Description (e.g., "Senior React Developer, 4+ years experience, Next.js, TypeScript").
 4. Click **Parse Job Description**.
    - **Behind the scenes**: The API triggers the `jd-analysis` worker.
    - Claude 3.5 Sonnet extracts structured criteria: required skills, seniority level, domain, and generates 4 tailored interview questions specifically targeting this role.
+   - *Note: On the free-tier live deployment, Anthropic API credit limits may cause this step to gracefully fallback to using mock generic criteria (e.g. Seniority: Senior, Domain: Backend) to keep the pipeline moving.*
 
 ## Step 2: Candidates Scraped & Scored (Zero-Touch)
 
@@ -26,6 +27,7 @@ This guide walks you through the entire automated hiring pipeline of TalentIQ, s
    - **Domain Match**: Checks if current company aligns with the role.
    - **Implicit Signals**: Flags job-hopping or short tenures.
 4. **Result**: You instantly see a ranked list of candidates on your dashboard. Anyone scoring above 70 is automatically shortlisted.
+   - *Note: If Anthropic API limits are hit, the scorer will bypass the implicit LLM check and rely purely on TF-IDF heuristics or mock scores.*
 
 ## Step 3: Interview Invitation Sent
 
@@ -53,6 +55,7 @@ This guide walks you through the entire automated hiring pipeline of TalentIQ, s
    - **faster-whisper** (running on CPU) transcribes the audio to text locally in seconds.
    - Claude evaluates the transcript for *Relevance, Clarity, Specificity, and Depth* against the original question.
 2. The AI generates a comprehensive **Scorecard**, concluding with a hiring signal (e.g., "Strong Hire") and a confidence score.
+   - *Note: Again, if Claude API credits are exhausted, the system will output a mock evaluation scorecard so the dashboard flow remains testable.*
 
 ## Step 6: Candidates Compared
 

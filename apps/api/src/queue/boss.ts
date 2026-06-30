@@ -28,7 +28,7 @@ export async function initQueue() {
         if (!jobRecord) return;
 
         try {
-            const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+            const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8002';
             const res = await fetch(`${workerUrl}/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -56,7 +56,7 @@ export async function initQueue() {
         const { eq } = await import('drizzle-orm');
 
         try {
-            const workerUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8002';
+            const workerUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8001';
             const res = await fetch(`${workerUrl}/scrape`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

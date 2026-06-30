@@ -75,7 +75,22 @@ async def _generate_ai_candidates(query: str, count: int = 8) -> List[LinkedInCa
     profiles tuned to the actual job query. These are clearly marked as
     synthetic (data_confidence='synthetic') so the recruiter UI can badge them.
     """
-    client = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("No ANTHROPIC_API_KEY found, returning fallback mock candidates.")
+        return [
+            LinkedInCandidate(
+                name=f"Fallback Candidate {i+1}",
+                title=f"Senior {query.split()[0]} Engineer",
+                company="MockTech Inc.",
+                skills=["React", "TypeScript", "Node.js", "System Design"],
+                profile_url=f"https://linkedin.com/in/fallback-candidate-{i+1}",
+                source="linkedin_ai_generated",
+                data_confidence="synthetic",
+            ) for i in range(count)
+        ]
+
+    client = _anthropic.Anthropic(api_key=api_key)
 
     prompt = f"""Generate {count} realistic but fictional candidate profiles for this job search query: "{query}"
 
@@ -89,18 +104,16 @@ Each object must have exactly these keys:
 
 Vary seniority, company size, and skill depth. Make profiles plausible for a real recruiter to evaluate."""
 
-    message = client.messages.create(
-        model="claude-3-5-haiku-20241022",
-        max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    raw = message.content[0].text.strip()
-
     try:
+        message = client.messages.create(
+            model="claude-3-5-haiku-20241022",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = message.content[0].text.strip()
         profiles = _json.loads(raw)
-    except _json.JSONDecodeError:
-        # Fallback if Claude returns malformed JSON
+    except Exception as e:
+        print(f"Failed to generate AI candidates: {e}")
         return []
 
     candidates = []

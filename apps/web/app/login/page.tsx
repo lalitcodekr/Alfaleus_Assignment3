@@ -26,9 +26,9 @@ export default function LoginPage() {
         await api.post('/api/auth/sign-in/email', { email, password });
         router.push('/');
       }
-    } catch {
+    } catch (err: any) {
       setToast({
-        message: isSignUp ? 'Sign up failed. User may already exist.' : 'Invalid email or password.',
+        message: err.message && !err.message.startsWith('Request failed') ? err.message : (isSignUp ? 'Sign up failed.' : 'Invalid email or password.'),
         type: 'error'
       });
     } finally {

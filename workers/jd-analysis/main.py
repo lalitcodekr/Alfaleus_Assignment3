@@ -20,6 +20,8 @@ async def analyze(req: AnalyzeRequest):
         result = await analyze_and_save_jd(req.job_id, req.jd_text)
         return {"status": "success", "data": result}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 class GenerateQuestionsRequest(BaseModel):

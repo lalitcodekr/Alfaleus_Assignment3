@@ -19,12 +19,17 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-talentiq}
+      - DATABASE_URL=${DATABASE_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
       - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
       - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - SCRAPER_WORKER_URL=http://scraper-worker:8001
+      - JD_ANALYSIS_WORKER_URL=http://jd-analysis-worker:8002
+      - SCORER_WORKER_URL=http://scorer-worker:8003
+      - TRANSCRIBER_WORKER_URL=http://transcriber-worker:8004
     depends_on:
       - db
 
@@ -35,8 +40,11 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-talentiq}
+      - DATABASE_URL=${DATABASE_URL}
       - API_URL=http://api:3001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./workers/scraper:/app
     depends_on:
       - db
       - api
@@ -48,8 +56,10 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-talentiq}
+      - DATABASE_URL=${DATABASE_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./workers/jd-analysis:/app
     depends_on:
       - db
 
@@ -60,7 +70,8 @@ services:
     ports:
       - "8003:8003"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-talentiq}
+      - DATABASE_URL=${DATABASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       - db
 
@@ -71,7 +82,7 @@ services:
     ports:
       - "8004:8004"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-talentiq}
+      - DATABASE_URL=${DATABASE_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}

@@ -39,7 +39,7 @@ candidatesRouter.post('/:id/invite', async (c) => {
     const { token } = await tokenService.createInterviewRecord(candidate.id, job.id);
     
     // Generate questions using JD analysis worker
-    const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+    const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8002';
     let generatedQuestions = null;
     try {
         const res = await fetch(`${workerUrl}/generate-questions`, {

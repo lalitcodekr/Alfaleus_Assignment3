@@ -35,7 +35,7 @@ jobsRouter.post('/', zValidator('json', createJobSchema), async (c) => {
     if (!queued) {
         // pg-boss returned null — trigger the worker directly as a fire-and-forget
         console.warn('[jobs] pg-boss not ready, triggering JD analysis worker directly');
-        const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+        const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8002';
         fetch(`${workerUrl}/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -46,10 +46,37 @@ jobsRouter.post('/', zValidator('json', createJobSchema), async (c) => {
                 return;
             }
             const data = await res.json() as { data: { seniority_level?: string; domain?: string } };
-            await enqueue('scrape-candidates', {
-                job_id: jobId,
-                query: `${data.data?.seniority_level ?? ''} ${data.data?.domain ?? title}`.trim(),
-            });
+            const scraperUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8001';
+            fetch(`${scraperUrl}/scrape`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    job_id: jobId,
+                    query: `${data.data?.seniority_level ?? ''} ${data.data?.domain ?? title}`.trim()
+                }),
+            }).then(async (scrapeRes) => {
+                if (!scrapeRes.ok) {
+                    console.error('[jobs] Direct Scraper error:', await scrapeRes.text());
+                    return;
+                }
+                await db.update(jobs).set({ status: 'scoring_pending' }).where(eq(jobs.id, jobId));
+                const scoreQueued = await enqueue('score-candidates', { job_id: jobId });
+                if (!scoreQueued) {
+                    console.warn('[jobs] pg-boss not ready, triggering Scorer worker directly');
+                    const { candidates } = await import('../db/schema');
+                    const allCands = await db.select().from(candidates).where(eq(candidates.jobId, jobId));
+                    const scorerUrl = process.env.SCORER_WORKER_URL || 'http://localhost:8003';
+                    
+                    for (const cand of allCands) {
+                        await fetch(`${scorerUrl}/score`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ job_id: jobId, candidate_id: cand.id })
+                        }).catch(err => console.error('[jobs] Direct Scorer error:', err));
+                    }
+                    await db.update(jobs).set({ status: 'completed' }).where(eq(jobs.id, jobId));
+                }
+            }).catch(err => console.error('[jobs] Direct Scraper error:', err));
         }).catch(err => console.error('[jobs] Direct JD worker error:', err));
     }
 
@@ -66,7 +93,7 @@ jobsRouter.post('/:id/retrigger', async (c) => {
 
     console.log(`[admin] Re-triggering pipeline for job: ${jobId}`);
 
-    const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8001';
+    const workerUrl = process.env.JD_ANALYSIS_WORKER_URL || 'http://localhost:8002';
     try {
         const res = await fetch(`${workerUrl}/analyze`, {
             method: 'POST',
@@ -81,7 +108,7 @@ jobsRouter.post('/:id/retrigger', async (c) => {
         await db.update(jobs).set({ status: 'parsing' }).where(eq(jobs.id, jobId));
 
         // Now trigger scraper
-        const scraperUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8002';
+        const scraperUrl = process.env.SCRAPER_WORKER_URL || 'http://localhost:8001';
         const scrapeRes = await fetch(`${scraperUrl}/scrape`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -95,6 +122,24 @@ jobsRouter.post('/:id/retrigger', async (c) => {
             return c.json({ error: `Scraper failed: ${await scrapeRes.text()}`, jd_analysis: data.data }, 500);
         }
         const scrapeData = await scrapeRes.json();
+        
+        await db.update(jobs).set({ status: 'scoring_pending' }).where(eq(jobs.id, jobId));
+        const scoreQueued = await enqueue('score-candidates', { job_id: jobId });
+        if (!scoreQueued) {
+            console.warn('[jobs] pg-boss not ready in retrigger, triggering Scorer worker directly');
+            const { candidates } = await import('../db/schema');
+            const allCands = await db.select().from(candidates).where(eq(candidates.jobId, jobId));
+            const scorerUrl = process.env.SCORER_WORKER_URL || 'http://localhost:8003';
+            
+            for (const cand of allCands) {
+                await fetch(`${scorerUrl}/score`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: jobId, candidate_id: cand.id })
+                }).catch(err => console.error('[jobs] Direct Scorer error:', err));
+            }
+            await db.update(jobs).set({ status: 'completed' }).where(eq(jobs.id, jobId));
+        }
 
         return c.json({ success: true, jd_analysis: data.data, scrape: scrapeData });
     } catch (err: any) {

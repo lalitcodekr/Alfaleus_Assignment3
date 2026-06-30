@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,23 +7,23 @@
 /* === Midnight Ember Design Tokens === */
 :root {
   /* Colors */
-  --color-bg-base: #050505;
-  --color-bg-surface: rgba(20, 20, 22, 0.6);
-  --color-bg-elevated: rgba(30, 30, 34, 0.75);
+  --color-bg-base: #05050A;
+  --color-bg-surface: rgba(20, 20, 26, 0.6);
+  --color-bg-elevated: rgba(30, 30, 38, 0.75);
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.16);
 
-  /* Primary - Vibrant Orange */
-  --color-primary: #FF5A00;
-  --color-primary-light: #FF8A33;
-  --color-primary-dark: #CC4800;
-  --color-primary-glow: rgba(255, 90, 0, 0.4);
+  /* Primary - Indigo */
+  --color-primary: #6366F1;
+  --color-primary-light: #818CF8;
+  --color-primary-dark: #4338CA;
+  --color-primary-glow: rgba(99, 102, 241, 0.4);
 
   /* Accent */
-  --color-accent-bg: rgba(255, 90, 0, 0.1);
+  --color-accent-bg: rgba(99, 102, 241, 0.1);
 
   /* Semantic */
-  --color-success: #10B981;
+  --color-success: #10B981; /* Emerald */
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
   --color-info: #3B82F6;
@@ -36,12 +36,12 @@
   --color-text-inverse: #000000;
 
   /* Score ranges */
-  --score-high: #FF5A00;
+  --score-high: #10B981;
   --score-medium: #F59E0B;
-  --score-low: #71717A;
+  --score-low: #EF4444;
 
   /* Typography */
-  --font-body: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Spacing */
@@ -67,8 +67,8 @@ html {
 body {
   background-color: var(--color-bg-base);
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(255, 90, 0, 0.06), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(255, 90, 0, 0.04), transparent 25%);
+    radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.06), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.04), transparent 25%);
   background-attachment: fixed;
   color: var(--color-text-primary);
   min-height: 100vh;
