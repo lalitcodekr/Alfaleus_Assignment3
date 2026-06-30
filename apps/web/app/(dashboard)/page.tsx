@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -39,11 +39,15 @@ export default function DashboardPage() {
     }
   };
 
+  const queryClient = useQueryClient();
+
   const handleLogout = async () => {
     try {
       await api.post('/api/auth/sign-out', {});
+      queryClient.clear();
       router.push('/login');
     } catch {
+      queryClient.clear();
       router.push('/login');
     }
   };
